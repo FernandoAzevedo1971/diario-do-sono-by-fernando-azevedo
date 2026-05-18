@@ -1,5 +1,5 @@
 {
   "installCommand": "npm install",
-  "buildCommand": "npm run mobile:export:web",
+  "buildCommand": "npm run core:build && npm run mobile:export:web",
   "outputDirectory": "apps/mobile/dist"
 }

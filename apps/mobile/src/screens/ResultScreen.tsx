@@ -5,6 +5,7 @@ import { AppBackground } from '../components/AppBackground';
 import { GlassCard } from '../components/GlassCard';
 import { MetricCard } from '../components/MetricCard';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { SleepTimeline } from '../components/SleepTimeline';
 import { colors, spacing } from '../theme/tokens';
 import type { SleepDiaryEntry } from '../types';
 
@@ -27,23 +28,41 @@ export function ResultScreen({ entry, entries, onFinish, onAddAnother }: {
   onAddAnother: () => void;
 }) {
   const averages = calculateSleepDiaryAverages(entries.map((e) => ({ input: e.input, metrics: e.metrics })));
+  const { input, metrics } = entry;
 
   return (
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Resultado do dia</Text>
+
+        {/* Sleep timeline visualization */}
+        <GlassCard style={styles.timelineCard}>
+          <SleepTimeline
+            bedTime={input.bedTime}
+            sleepLatencyMinutes={input.sleepLatencyMinutes}
+            nightAwakeningsCount={input.nightAwakeningsCount}
+            wasoMinutes={input.wasoMinutes}
+            finalWakeTime={input.finalWakeTime}
+            outOfBedLatencyMinutes={input.outOfBedLatencyMinutes}
+            outOfBedTime={metrics.outOfBedTime}
+          />
+        </GlassCard>
+
+        {/* Efficiency hero */}
         <GlassCard style={styles.hero}>
           <Text style={styles.heroLabel}>Eficiência do sono</Text>
-          <Text style={styles.heroValue}>{entry.metrics.sleepEfficiencyPercent}%</Text>
+          <Text style={styles.heroValue}>{metrics.sleepEfficiencyPercent}%</Text>
         </GlassCard>
+
         <View style={styles.metrics}>
-          <MetricCard label="TTS calculado" value={formatDuration(entry.metrics.ttsCalculatedMinutes)} />
-          <MetricCard label="TTS percebido" value={formatDuration(entry.metrics.ttsPerceivedMinutes)} />
-          <MetricCard label="TTC" value={formatDuration(entry.metrics.ttcMinutes)} />
-          <MetricCard label="LIS" value={`${entry.metrics.lisMinutes} min`} />
-          <MetricCard label="WASO" value={`${entry.metrics.wasoMinutes} min`} />
-          <MetricCard label="Fragmentação" value={`${entry.metrics.fragmentationCount}`} />
+          <MetricCard label="TTS calculado" value={formatDuration(metrics.ttsCalculatedMinutes)} />
+          <MetricCard label="TTS percebido" value={formatDuration(metrics.ttsPerceivedMinutes)} />
+          <MetricCard label="TTC" value={formatDuration(metrics.ttcMinutes)} />
+          <MetricCard label="LIS" value={`${metrics.lisMinutes} min`} />
+          <MetricCard label="WASO" value={`${metrics.wasoMinutes} min`} />
+          <MetricCard label="Fragmentação" value={`${metrics.fragmentationCount}`} />
         </View>
+
         <GlassCard style={styles.card}>
           <Text style={styles.cardTitle}>VALOR MÉDIO DE {averages.daysCount} DIA{averages.daysCount === 1 ? '' : 'S'} DE PREENCHIMENTO</Text>
           <View style={styles.metrics}>
@@ -73,6 +92,7 @@ export function ResultScreen({ entry, entries, onFinish, onAddAnother }: {
             ) : null}
           </View>
         </GlassCard>
+
         <PrimaryButton label="Inserir mais um dia" onPress={onAddAnother} />
         <PrimaryButton label="Encerrar para amanhã" variant="secondary" onPress={onFinish} />
       </ScrollView>
@@ -83,6 +103,7 @@ export function ResultScreen({ entry, entries, onFinish, onAddAnother }: {
 const styles = StyleSheet.create({
   content: { gap: spacing.lg, paddingBottom: spacing.xl },
   title: { color: colors.text, fontSize: 30, fontWeight: '900' },
+  timelineCard: { paddingHorizontal: spacing.sm },
   hero: { alignItems: 'center', gap: spacing.sm, backgroundColor: 'rgba(109,93,246,0.22)' },
   heroLabel: { color: colors.textMuted, fontSize: 16 },
   heroValue: { color: colors.text, fontSize: 58, fontWeight: '900' },

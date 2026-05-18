@@ -28,6 +28,12 @@ export interface SleepDiaryInput {
     description?: string | null;
   } | null;
   daytimeFeeling?: DailyFeeling | null;
+  sleepMedication?: {
+    used?: boolean | null;
+    name?: string | null;
+    dose?: string | null;
+    time?: string | null;
+  } | null;
 }
 
 export interface SleepDiaryMetrics {

@@ -4,6 +4,7 @@ import { calculateSleepDiary, type DailyFeeling, type SleepDiaryInput, type Slee
 import { AppBackground } from '../components/AppBackground';
 import { DurationInput, StepperInput, TimeInput } from '../components/DiaryInputs';
 import { GlassCard } from '../components/GlassCard';
+import { SleepTimeline } from '../components/SleepTimeline';
 import { OptionCard } from '../components/OptionCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
@@ -37,10 +38,12 @@ const initialInput: SleepDiaryInput = {
     description: null,
   },
   daytimeFeeling: null,
+  sleepMedication: { used: false, name: null, dose: null, time: null },
 };
 
-export function DiaryWizardScreen({ editingEntry, onCancel, onSave }: {
+export function DiaryWizardScreen({ editingEntry, previousEntry, onCancel, onSave }: {
   editingEntry?: SleepDiaryEntry | null;
+  previousEntry?: SleepDiaryEntry | null;
   onCancel: () => void;
   onSave: (entry: SleepDiaryEntry) => void;
 }) {
@@ -163,6 +166,58 @@ export function DiaryWizardScreen({ editingEntry, onCancel, onSave }: {
       ),
     },
     {
+      title: 'Usou alguma medicação para dormir ontem?',
+      content: (
+        <View style={styles.optionalGroup}>
+          <ChoiceGroup
+            value={input.sleepMedication?.used ? 'yes' : 'no'}
+            onChange={(value) => setInput({
+              ...input,
+              sleepMedication: value === 'yes'
+                ? { used: true, name: input.sleepMedication?.name ?? '', dose: input.sleepMedication?.dose ?? '', time: input.sleepMedication?.time ?? '22:00' }
+                : { used: false, name: null, dose: null, time: null },
+            })}
+            options={[['no', 'NÃO'], ['yes', 'SIM']]}
+          />
+          {input.sleepMedication?.used ? (
+            <>
+              {previousEntry?.input.sleepMedication?.used ? (
+                <OptionCard
+                  label={`Repetir do dia anterior: ${previousEntry.input.sleepMedication.name ?? ''} ${previousEntry.input.sleepMedication.dose ?? ''}`}
+                  onPress={() => setInput({
+                    ...input,
+                    sleepMedication: { ...previousEntry.input.sleepMedication, used: true },
+                  })}
+                  style={styles.repeatBtn}
+                />
+              ) : null}
+              <TextInput
+                style={styles.textArea}
+                placeholder="Nome do medicamento"
+                placeholderTextColor={colors.textMuted}
+                value={input.sleepMedication.name ?? ''}
+                onChangeText={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, name: value } })}
+              />
+              <TextInput
+                style={styles.textArea}
+                placeholder="Dose (ex: 10mg)"
+                placeholderTextColor={colors.textMuted}
+                value={input.sleepMedication.dose ?? ''}
+                onChangeText={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, dose: value } })}
+              />
+              <Text style={styles.fieldLabel}>Horário que tomou</Text>
+              <TimeInput
+                value={input.sleepMedication.time ?? '22:00'}
+                onChange={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, time: value } })}
+                rangeStart="18:00"
+                rangeEnd="02:00"
+              />
+            </>
+          ) : null}
+        </View>
+      ),
+    },
+    {
       title: 'Como se sentiu durante o dia?',
       content: <ChoiceGroup value={input.daytimeFeeling ?? ''} onChange={(value) => setInput({ ...input, daytimeFeeling: value as DailyFeeling })} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />,
     },
@@ -175,6 +230,22 @@ export function DiaryWizardScreen({ editingEntry, onCancel, onSave }: {
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.progress}>Pergunta {step + 1} de {steps.length}</Text>
+
+        {/* Live timeline preview — updates as the user fills in each step */}
+        <GlassCard style={styles.timelineCard}>
+          <SleepTimeline
+            bedTime={input.bedTime}
+            sleepLatencyMinutes={input.sleepLatencyMinutes}
+            nightAwakeningsCount={input.nightAwakeningsCount}
+            wasoMinutes={input.wasoMinutes}
+            finalWakeTime={input.finalWakeTime}
+            outOfBedLatencyMinutes={input.outOfBedLatencyMinutes}
+            outOfBedTime={result.isValid ? result.metrics.outOfBedTime : input.finalWakeTime}
+            onChangeBedTime={(v) => setInput({ ...input, bedTime: v })}
+            onChangeFinalWakeTime={(v) => setInput({ ...input, finalWakeTime: v })}
+          />
+        </GlassCard>
+
         <Text style={styles.title}>{currentStep.title}</Text>
         <GlassCard style={styles.card}>{currentStep.content}</GlassCard>
         {result.issues.length > 0 && isLastStep ? (
@@ -227,9 +298,11 @@ const styles = StyleSheet.create({
   progress: { color: colors.cyan, fontSize: 14, fontWeight: '800' },
   title: { color: colors.text, fontSize: 27, fontWeight: '900', lineHeight: 34 },
   card: { gap: spacing.md },
+  timelineCard: { paddingHorizontal: spacing.xs },
   choiceGroup: { gap: spacing.md },
   optionalGroup: { gap: spacing.md },
   fieldLabel: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
+  repeatBtn: { borderColor: colors.cyan, backgroundColor: 'rgba(101,214,255,0.08)' },
   textArea: { minHeight: 88, borderRadius: 16, borderWidth: 1, borderColor: colors.border, color: colors.text, padding: 14, textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.06)' },
   actions: { flexDirection: 'row', gap: spacing.md },
   warningCard: { gap: spacing.sm },

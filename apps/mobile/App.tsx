@@ -159,7 +159,14 @@ export default function App() {
           }}
         />
       )}
-      {route === 'diary' && <DiaryWizardScreen editingEntry={editingEntry} onCancel={() => setRoute('today')} onSave={handleSaveEntry} />}
+      {route === 'diary' && (
+        <DiaryWizardScreen
+          editingEntry={editingEntry}
+          previousEntry={entries.length > 0 ? entries[0] : null}
+          onCancel={() => setRoute('today')}
+          onSave={handleSaveEntry}
+        />
+      )}
       {route === 'result' && lastSavedEntry && <ResultScreen entry={lastSavedEntry} entries={entries} onFinish={() => setRoute('today')} onAddAnother={() => setRoute('diary')} />}
     </>
   );

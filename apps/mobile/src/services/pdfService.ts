@@ -659,9 +659,16 @@ function drawTablePages(
 
 // ─── public API ──────────────────────────────────────────────────────────────
 
+export type ReportType = 'consolidated' | 'detailed';
+
+/**
+ * consolidated — capa com médias + gráficos de evolução (2 páginas)
+ * detailed     — capa + linha do tempo + gráficos + tabela completa (4+ páginas)
+ */
 export async function generateSleepDiaryPdf(
   profile: PatientProfile,
   entries: SleepDiaryEntry[],
+  reportType: ReportType = 'detailed',
 ): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
 
@@ -674,22 +681,28 @@ export async function generateSleepDiaryPdf(
     chronological.map((e) => ({ input: e.input, metrics: e.metrics })),
   );
 
-  // Page 1 — cover & averages
+  // Page 1 — cover & averages (both modes)
   drawPage1(doc, profile, chronological, averages);
   drawFooter(doc, 1);
 
-  // Page 2 — timeline (up to 14 most recent shown)
-  doc.addPage();
-  const timelineEntries = chronological.slice(-14);
-  drawTimelinePage(doc, timelineEntries, 2);
+  if (reportType === 'consolidated') {
+    // Page 2 — metric trend charts only
+    doc.addPage();
+    drawChartsPage(doc, chronological, 2);
+  } else {
+    // Page 2 — timeline (up to 14 most recent)
+    doc.addPage();
+    const timelineEntries = chronological.slice(-14);
+    drawTimelinePage(doc, timelineEntries, 2);
 
-  // Page 3 — metric charts
-  doc.addPage();
-  drawChartsPage(doc, chronological, 3);
+    // Page 3 — metric charts
+    doc.addPage();
+    drawChartsPage(doc, chronological, 3);
 
-  // Page 4+ — data table
-  doc.addPage();
-  drawTablePages(doc, chronological, 4);
+    // Page 4+ — data table
+    doc.addPage();
+    drawTablePages(doc, chronological, 4);
+  }
 
   return (doc as unknown as { output(type: string): Blob }).output('blob');
 }

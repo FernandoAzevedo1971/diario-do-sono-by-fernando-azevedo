@@ -10,7 +10,7 @@ import {
 import { AppBackground } from '../components/AppBackground';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
-import { generateSleepDiaryPdf } from '../services/pdfService';
+import { generateSleepDiaryPdf, type ReportType } from '../services/pdfService';
 import { colors, radius, spacing } from '../theme/tokens';
 import type { PatientProfile, SleepDiaryEntry } from '../types';
 
@@ -46,6 +46,7 @@ function periodLabel(period: Period): string {
 
 export function SendToDoctorScreen({ profile, entries, onBack }: SendToDoctorScreenProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('14d');
+  const [selectedReportType, setSelectedReportType] = useState<ReportType>('detailed');
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
@@ -56,7 +57,7 @@ export function SendToDoctorScreen({ profile, entries, onBack }: SendToDoctorScr
     setIsGenerating(true);
     try {
       const filtered = getFilteredEntries(entries, selectedPeriod);
-      const blob = await generateSleepDiaryPdf(profile, filtered);
+      const blob = await generateSleepDiaryPdf(profile, filtered, selectedReportType);
       const fileName = `diario-sono-${new Date().toISOString().slice(0, 10)}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
 
@@ -132,15 +133,56 @@ export function SendToDoctorScreen({ profile, entries, onBack }: SendToDoctorScr
           Gera um PDF do diário e compartilha com seu médico
         </Text>
 
-        {/* What's included */}
+        {/* Report type selector */}
         <GlassCard style={styles.card}>
-          <Text style={styles.cardTitle}>O que será incluído</Text>
-          <View style={styles.bulletList}>
-            <BulletItem text="Resumo de métricas médias" />
-            <BulletItem text="Linha do tempo do sono (últimas 2 semanas)" />
-            <BulletItem text="Gráficos de evolução (eficiência, TTS, LIS, WASO)" />
-            <BulletItem text="Tabela completa de registros" />
-          </View>
+          <Text style={styles.cardTitle}>Tipo de relatório</Text>
+
+          <Pressable
+            onPress={() => setSelectedReportType('consolidated')}
+            style={[styles.reportTypeCard, selectedReportType === 'consolidated' && styles.reportTypeCardActive]}
+          >
+            <View style={styles.reportTypeHeader}>
+              <Text style={styles.reportTypeIcon}>📊</Text>
+              <View style={styles.reportTypeInfo}>
+                <Text style={[styles.reportTypeName, selectedReportType === 'consolidated' && styles.reportTypeNameActive]}>
+                  Resumo Consolidado
+                </Text>
+                <Text style={styles.reportTypeSub}>2 páginas · médias + gráficos</Text>
+              </View>
+              <View style={[styles.radioOuter, selectedReportType === 'consolidated' && styles.radioOuterActive]}>
+                {selectedReportType === 'consolidated' ? <View style={styles.radioInner} /> : null}
+              </View>
+            </View>
+            <View style={styles.bulletList}>
+              <BulletItem text="Médias clínicas do período" />
+              <BulletItem text="Gráficos de evolução (eficiência, TTS, LIS, WASO)" />
+            </View>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setSelectedReportType('detailed')}
+            style={[styles.reportTypeCard, selectedReportType === 'detailed' && styles.reportTypeCardActive]}
+          >
+            <View style={styles.reportTypeHeader}>
+              <Text style={styles.reportTypeIcon}>📋</Text>
+              <View style={styles.reportTypeInfo}>
+                <Text style={[styles.reportTypeName, selectedReportType === 'detailed' && styles.reportTypeNameActive]}>
+                  Diário Detalhado
+                </Text>
+                <Text style={styles.reportTypeSub}>4+ páginas · completo por noite</Text>
+              </View>
+              <View style={[styles.radioOuter, selectedReportType === 'detailed' && styles.radioOuterActive]}>
+                {selectedReportType === 'detailed' ? <View style={styles.radioInner} /> : null}
+              </View>
+            </View>
+            <View style={styles.bulletList}>
+              <BulletItem text="Médias clínicas do período" />
+              <BulletItem text="Linha do tempo do sono noite a noite" />
+              <BulletItem text="Gráficos de evolução de cada métrica" />
+              <BulletItem text="Tabela completa de registros" />
+            </View>
+          </Pressable>
+
           <Text style={styles.countBadge}>
             {entries.length} {entries.length === 1 ? 'noite disponível' : 'noites disponíveis'}
           </Text>
@@ -423,5 +465,60 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
+  },
+
+  reportTypeCard: {
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  reportTypeCardActive: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(109,93,246,0.12)',
+  },
+  reportTypeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  reportTypeIcon: {
+    fontSize: 22,
+  },
+  reportTypeInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  reportTypeName: {
+    color: colors.textMuted,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  reportTypeNameActive: {
+    color: colors.text,
+  },
+  reportTypeSub: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  radioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioOuterActive: {
+    borderColor: colors.primary,
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
   },
 });

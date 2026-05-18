@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Component, type ReactNode } from 'react';
+import { Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { loadEntries, loadProfile, saveProfile, upsertEntry } from './src/storage/diaryRepository';
 import { cancelDailyDiaryReminder, scheduleDailyDiaryReminder } from './src/services/notificationService';
@@ -14,6 +15,29 @@ import { ResultScreen } from './src/screens/ResultScreen';
 import type { AuthenticatedUser, PatientProfile, SleepDiaryEntry } from './src/types';
 
 type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#080B1F', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Text style={{ color: '#FF6B6B', fontSize: 18, fontWeight: '800', marginBottom: 12 }}>Erro ao carregar o app</Text>
+          <Text style={{ color: '#aaa', fontSize: 13, textAlign: 'center' }}>{this.state.error.message}</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const [route, setRoute] = useState<AppRoute>('loading');
@@ -137,7 +161,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <StatusBar style="light" />
       {route === 'loading' && <WelcomeScreen onStart={() => undefined} />}
       {route === 'welcome' && <WelcomeScreen onStart={() => setRoute(user ? 'profile' : 'auth')} />}
@@ -168,7 +192,7 @@ export default function App() {
         />
       )}
       {route === 'result' && lastSavedEntry && <ResultScreen entry={lastSavedEntry} entries={entries} onFinish={() => setRoute('today')} onAddAnother={() => setRoute('diary')} />}
-    </>
+    </ErrorBoundary>
   );
 }
 

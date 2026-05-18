@@ -17,6 +17,18 @@
         "backgroundColor": "#080B1F"
       }
     },
+    "web": {
+      "bundler": "metro",
+      "themeColor": "#080B1F",
+      "backgroundColor": "#080B1F",
+      "name": "Diário do Sono",
+      "shortName": "Sono",
+      "description": "Seu diário clínico do sono",
+      "lang": "pt-BR",
+      "scope": "/",
+      "display": "standalone",
+      "orientation": "portrait"
+    },
     "plugins": [
       "expo-notifications"
     ],

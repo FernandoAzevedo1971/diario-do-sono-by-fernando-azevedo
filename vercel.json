@@ -1,5 +1,13 @@
 {
+  "framework": null,
   "installCommand": "npm install",
   "buildCommand": "npm run core:build && npm run mobile:export:web",
-  "outputDirectory": "apps/mobile/dist"
+  "outputDirectory": "apps/mobile/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/_expo/static/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ]
 }

@@ -7,6 +7,8 @@ export interface PatientProfile {
   gender: 'male' | 'female' | 'prefer_not_to_say';
   usualOutOfBedTime: string;
   acceptedTermsAt: string;
+  initialIsiScore?: number | null;
+  initialIsiInterpretation?: string | null;
   lastIsiCompletedAt?: string | null;
   lastIsiPromptedAt?: string | null;
 }

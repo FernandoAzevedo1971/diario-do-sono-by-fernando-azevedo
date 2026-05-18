@@ -23,8 +23,18 @@ const initialInput: SleepDiaryInput = {
   perceivedSleepMinutes: 420,
   sleepQuality: 'regular',
   morningFeeling: 'tired',
-  alcoholUse: null,
-  physicalActivity: null,
+  alcoholUse: {
+    used: false,
+    untilTime: null,
+    amount: null,
+    beverage: null,
+  },
+  physicalActivity: {
+    didActivity: false,
+    intensity: null,
+    endTime: null,
+    description: null,
+  },
   daytimeFeeling: null,
 };
 
@@ -75,14 +85,85 @@ export function DiaryWizardScreen({ editingEntry, onCancel, onSave }: {
       content: <ChoiceGroup value={input.morningFeeling} onChange={(value) => setInput({ ...input, morningFeeling: value as DailyFeeling })} options={[['rested', 'Descansado'], ['tired', 'Cansado'], ['sleepy', 'Sonolento']]} />,
     },
     {
-      title: 'Perguntas opcionais',
+      title: 'Ingeriu álcool ontem?',
       content: (
         <View style={styles.optionalGroup}>
-          <TextInput style={styles.textArea} multiline placeholder="Ingeriu álcool ontem? Que horas? Quanto?" placeholderTextColor={colors.textMuted} />
-          <TextInput style={styles.textArea} multiline placeholder="Fez atividade física ontem? Qual horário?" placeholderTextColor={colors.textMuted} />
-          <ChoiceGroup value={input.daytimeFeeling ?? ''} onChange={(value) => setInput({ ...input, daytimeFeeling: value as DailyFeeling })} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />
+          <ChoiceGroup
+            value={input.alcoholUse?.used ? 'yes' : 'no'}
+            onChange={(value) => setInput({
+              ...input,
+              alcoholUse: value === 'yes'
+                ? { used: true, amount: input.alcoholUse?.amount ?? '', beverage: input.alcoholUse?.beverage ?? '', untilTime: input.alcoholUse?.untilTime ?? '' }
+                : { used: false, amount: null, beverage: null, untilTime: null },
+            })}
+            options={[['no', 'NÃO'], ['yes', 'SIM']]}
+          />
+          {input.alcoholUse?.used ? (
+            <>
+              <TextInput
+                style={styles.textArea}
+                multiline
+                placeholder="Quantidade e qual bebida"
+                placeholderTextColor={colors.textMuted}
+                value={input.alcoholUse.amount ?? ''}
+                onChangeText={(value) => setInput({ ...input, alcoholUse: { ...input.alcoholUse, used: true, amount: value } })}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Até que horário? HH:mm"
+                placeholderTextColor={colors.textMuted}
+                value={input.alcoholUse.untilTime ?? ''}
+                onChangeText={(value) => setInput({ ...input, alcoholUse: { ...input.alcoholUse, used: true, untilTime: value } })}
+              />
+            </>
+          ) : null}
         </View>
       ),
+    },
+    {
+      title: 'Fez atividade física ontem?',
+      content: (
+        <View style={styles.optionalGroup}>
+          <ChoiceGroup
+            value={input.physicalActivity?.didActivity ? 'yes' : 'no'}
+            onChange={(value) => setInput({
+              ...input,
+              physicalActivity: value === 'yes'
+                ? { didActivity: true, intensity: input.physicalActivity?.intensity ?? 'light', description: input.physicalActivity?.description ?? '', endTime: input.physicalActivity?.endTime ?? '' }
+                : { didActivity: false, intensity: null, description: null, endTime: null },
+            })}
+            options={[['no', 'NÃO'], ['yes', 'SIM']]}
+          />
+          {input.physicalActivity?.didActivity ? (
+            <>
+              <ChoiceGroup
+                value={input.physicalActivity.intensity ?? 'light'}
+                onChange={(value) => setInput({ ...input, physicalActivity: { ...input.physicalActivity, didActivity: true, intensity: value as 'light' | 'intense' } })}
+                options={[['light', 'Exercício leve'], ['intense', 'Exercício intenso']]}
+              />
+              <TextInput
+                style={styles.textArea}
+                multiline
+                placeholder="Descreva a atividade, se quiser"
+                placeholderTextColor={colors.textMuted}
+                value={input.physicalActivity.description ?? ''}
+                onChangeText={(value) => setInput({ ...input, physicalActivity: { ...input.physicalActivity, didActivity: true, description: value } })}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Horário em que encerrou HH:mm"
+                placeholderTextColor={colors.textMuted}
+                value={input.physicalActivity.endTime ?? ''}
+                onChangeText={(value) => setInput({ ...input, physicalActivity: { ...input.physicalActivity, didActivity: true, endTime: value } })}
+              />
+            </>
+          ) : null}
+        </View>
+      ),
+    },
+    {
+      title: 'Como se sentiu durante o dia?',
+      content: <ChoiceGroup value={input.daytimeFeeling ?? ''} onChange={(value) => setInput({ ...input, daytimeFeeling: value as DailyFeeling })} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />,
     },
   ];
 

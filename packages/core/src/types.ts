@@ -17,12 +17,14 @@ export interface SleepDiaryInput {
   morningFeeling: DailyFeeling;
   alcoholUse?: {
     used?: boolean | null;
-    time?: string | null;
+    untilTime?: string | null;
     amount?: string | null;
+    beverage?: string | null;
   } | null;
   physicalActivity?: {
     didActivity?: boolean | null;
-    time?: string | null;
+    intensity?: 'light' | 'intense' | null;
+    endTime?: string | null;
     description?: string | null;
   } | null;
   daytimeFeeling?: DailyFeeling | null;

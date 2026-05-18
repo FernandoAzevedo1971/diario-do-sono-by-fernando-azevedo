@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppBackground } from '../components/AppBackground';
 import { GlassCard } from '../components/GlassCard';
 import { OptionCard } from '../components/OptionCard';
@@ -43,6 +43,7 @@ export function ProfileScreen({ initialEmail, onSave }: { initialEmail: string; 
   const [usualOutOfBedTime, setUsualOutOfBedTime] = useState('07:00');
   const [accepted, setAccepted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenderSelectOpen, setIsGenderSelectOpen] = useState(false);
 
   const canContinue = Boolean(name.trim() && email.trim() && isCompleteBirthDate(birthDate) && usualOutOfBedTime.trim() && accepted && !isSaving);
 
@@ -78,9 +79,28 @@ export function ProfileScreen({ initialEmail, onSave }: { initialEmail: string; 
             maxLength={10}
           />
           <Text style={styles.label}>Gênero</Text>
-          <OptionCard label="Masculino" selected={gender === 'male'} onPress={() => setGender('male')} />
-          <OptionCard label="Feminino" selected={gender === 'female'} onPress={() => setGender('female')} />
-          <OptionCard label="Prefiro não informar" selected={gender === 'prefer_not_to_say'} onPress={() => setGender('prefer_not_to_say')} />
+          <View style={styles.selectGroup}>
+            <Pressable style={styles.selectBox} onPress={() => setIsGenderSelectOpen((value) => !value)}>
+              <Text style={styles.selectText}>{getGenderLabel(gender)}</Text>
+              <Text style={styles.selectArrow}>{isGenderSelectOpen ? '▲' : '▼'}</Text>
+            </Pressable>
+            {isGenderSelectOpen ? (
+              <View style={styles.selectOptions}>
+                <OptionCard label="Masculino" selected={gender === 'male'} onPress={() => {
+                  setGender('male');
+                  setIsGenderSelectOpen(false);
+                }} />
+                <OptionCard label="Feminino" selected={gender === 'female'} onPress={() => {
+                  setGender('female');
+                  setIsGenderSelectOpen(false);
+                }} />
+                <OptionCard label="Prefiro não informar" selected={gender === 'prefer_not_to_say'} onPress={() => {
+                  setGender('prefer_not_to_say');
+                  setIsGenderSelectOpen(false);
+                }} />
+              </View>
+            ) : null}
+          </View>
           <Text style={styles.label}>Horário habitual de sair da cama</Text>
           <TextInput style={styles.input} placeholder="HH:mm" placeholderTextColor={colors.textMuted} value={usualOutOfBedTime} onChangeText={setUsualOutOfBedTime} />
           <OptionCard label="Li e aceito os termos de uso e privacidade" selected={accepted} onPress={() => setAccepted((value) => !value)} />
@@ -95,6 +115,18 @@ export function ProfileScreen({ initialEmail, onSave }: { initialEmail: string; 
   );
 }
 
+function getGenderLabel(gender: PatientProfile['gender']): string {
+  if (gender === 'male') {
+    return 'Masculino';
+  }
+
+  if (gender === 'female') {
+    return 'Feminino';
+  }
+
+  return 'Prefiro nao informar';
+}
+
 const styles = StyleSheet.create({
   content: { paddingBottom: spacing.xl, gap: spacing.md },
   title: { color: colors.text, fontSize: 30, fontWeight: '900' },
@@ -102,4 +134,9 @@ const styles = StyleSheet.create({
   card: { gap: spacing.md },
   label: { color: colors.text, fontWeight: '800', marginTop: spacing.sm },
   input: { minHeight: 54, borderRadius: 16, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.06)' },
+  selectGroup: { gap: spacing.sm },
+  selectBox: { minHeight: 54, borderRadius: 16, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.06)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  selectText: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  selectArrow: { color: colors.cyan, fontSize: 14, fontWeight: '900' },
+  selectOptions: { gap: spacing.sm },
 });

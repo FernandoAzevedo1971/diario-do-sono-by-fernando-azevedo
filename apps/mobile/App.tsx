@@ -79,6 +79,10 @@ export default function App() {
     setRoute(storedProfile ? 'today' : 'profile');
   }
 
+  function needsInitialIsi(currentProfile: PatientProfile | null, currentEntries: SleepDiaryEntry[]): boolean {
+    return Boolean(currentProfile && currentEntries.length === 0 && !currentProfile.lastIsiCompletedAt);
+  }
+
   async function handleSaveProfile(nextProfile: PatientProfile) {
     if (!user) {
       return;
@@ -88,6 +92,23 @@ export default function App() {
     setProfile(nextProfile);
     await scheduleDailyDiaryReminder(nextProfile.usualOutOfBedTime);
     setRoute('isiPrompt');
+  }
+
+  async function handleCompleteInitialIsi(score: number, interpretation: string) {
+    if (!user || !profile) {
+      return;
+    }
+
+    const nextProfile: PatientProfile = {
+      ...profile,
+      initialIsiScore: score,
+      initialIsiInterpretation: interpretation,
+      lastIsiCompletedAt: new Date().toISOString(),
+    };
+
+    await saveProfile(nextProfile, user);
+    setProfile(nextProfile);
+    setRoute('instructions');
   }
 
   async function handleSaveEntry(entry: SleepDiaryEntry) {
@@ -109,7 +130,7 @@ export default function App() {
       {route === 'welcome' && <WelcomeScreen onStart={() => setRoute(user ? 'profile' : 'auth')} />}
       {route === 'auth' && <AuthScreen onAuthenticated={handleAuthenticated} />}
       {route === 'profile' && <ProfileScreen initialEmail={user?.email ?? ''} onSave={handleSaveProfile} />}
-      {route === 'isiPrompt' && <IsiPromptScreen onAnswerNow={() => setRoute('instructions')} onLater={() => setRoute('instructions')} />}
+      {route === 'isiPrompt' && <IsiPromptScreen onComplete={handleCompleteInitialIsi} />}
       {route === 'instructions' && <InstructionsScreen onContinue={() => setRoute('today')} />}
       {route === 'today' && profile && (
         <TodayScreen
@@ -117,7 +138,7 @@ export default function App() {
           entries={entries}
           onNewEntry={() => {
             setEditingEntry(null);
-            setRoute('diary');
+            setRoute(needsInitialIsi(profile, entries) ? 'isiPrompt' : 'diary');
           }}
           onEditEntry={(entry) => {
             setEditingEntry(entry);

@@ -269,7 +269,7 @@ function getMoodValue(feeling: string): number {
   return map[feeling] || 3;
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create<any>({
   container: {
     flex: 1,
     backgroundColor: colors.background,

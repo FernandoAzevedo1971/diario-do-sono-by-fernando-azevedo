@@ -12,9 +12,10 @@ import { InstructionsScreen } from './src/screens/InstructionsScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
 import { DiaryWizardScreen } from './src/screens/DiaryWizardScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
+import { GraphicSummaryScreen } from './src/screens/GraphicSummaryScreen';
 import type { AuthenticatedUser, PatientProfile, SleepDiaryEntry } from './src/types';
 
-type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result';
+type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result' | 'summary';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -181,7 +182,11 @@ export default function App() {
             setEditingEntry(entry);
             setRoute('diary');
           }}
+          onSummary={() => setRoute('summary')}
         />
+      )}
+      {route === 'summary' && (
+        <GraphicSummaryScreen entries={entries} onBack={() => setRoute('today')} />
       )}
       {route === 'diary' && (
         <DiaryWizardScreen
@@ -191,7 +196,7 @@ export default function App() {
           onSave={handleSaveEntry}
         />
       )}
-      {route === 'result' && lastSavedEntry && <ResultScreen entry={lastSavedEntry} entries={entries} onFinish={() => setRoute('today')} onAddAnother={() => setRoute('diary')} />}
+      {route === 'result' && lastSavedEntry && <ResultScreen entry={lastSavedEntry} entries={entries} onFinish={() => setRoute('today')} onAddAnother={() => setRoute('diary')} onSummary={() => setRoute('summary')} />}
     </ErrorBoundary>
   );
 }

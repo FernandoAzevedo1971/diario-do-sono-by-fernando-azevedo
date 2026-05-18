@@ -21,11 +21,12 @@ const FEELING_LABEL: Record<string, string> = {
   sleepy: 'Sonolento',
 };
 
-export function ResultScreen({ entry, entries, onFinish, onAddAnother }: {
+export function ResultScreen({ entry, entries, onFinish, onAddAnother, onSummary }: {
   entry: SleepDiaryEntry;
   entries: SleepDiaryEntry[];
   onFinish: () => void;
   onAddAnother: () => void;
+  onSummary: () => void;
 }) {
   const averages = calculateSleepDiaryAverages(entries.map((e) => ({ input: e.input, metrics: e.metrics })));
   const { input, metrics } = entry;
@@ -94,6 +95,7 @@ export function ResultScreen({ entry, entries, onFinish, onAddAnother }: {
         </GlassCard>
 
         <PrimaryButton label="Inserir mais um dia" onPress={onAddAnother} />
+        <PrimaryButton label="Ver resumo gráfico" onPress={onSummary} />
         <PrimaryButton label="Encerrar para amanhã" variant="secondary" onPress={onFinish} />
       </ScrollView>
     </AppBackground>

@@ -8,11 +8,12 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 import type { PatientProfile, SleepDiaryEntry } from '../types';
 
-export function TodayScreen({ profile, entries, onNewEntry, onEditEntry }: {
+export function TodayScreen({ profile, entries, onNewEntry, onEditEntry, onSummary }: {
   profile: PatientProfile;
   entries: SleepDiaryEntry[];
   onNewEntry: () => void;
   onEditEntry: (entry: SleepDiaryEntry) => void;
+  onSummary: () => void;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const todayEntry = entries.find((entry) => entry.input.entryDate === today);
@@ -40,6 +41,10 @@ export function TodayScreen({ profile, entries, onNewEntry, onEditEntry }: {
             </>
           )}
         </GlassCard>
+
+        {entries.length > 0 ? (
+          <PrimaryButton label="Resumo Gráfico" onPress={onSummary} />
+        ) : null}
 
         {latestEntry ? (
           <>

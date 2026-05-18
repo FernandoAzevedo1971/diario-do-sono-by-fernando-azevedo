@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, { Circle, Defs, Filter, FeGaussianBlur, FeMerge, FeMergeNode } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../theme/tokens';
 
 interface RingMiniProps {
@@ -22,16 +22,12 @@ export const RingMini: React.FC<RingMiniProps> = ({
 
   return (
     <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <Defs>
-          <Filter id="ringGlowN2" x="-20%" y="-20%" width="140%" height="140%">
-            <FeGaussianBlur stdDeviation="2" result="b" />
-            <FeMerge>
-              <FeMergeNode in="b" />
-              <FeMergeNode in="SourceGraphic" />
-            </FeMerge>
-          </Filter>
-        </Defs>
+      <Svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{ transform: [{ rotate: '-90deg' }] }}
+      >
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -50,9 +46,6 @@ export const RingMini: React.FC<RingMiniProps> = ({
           strokeDasharray={c}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          filter="url(#ringGlowN2)"
-          rotation={-90}
-          origin={`${size / 2}, ${size / 2}`}
         />
       </Svg>
     </View>

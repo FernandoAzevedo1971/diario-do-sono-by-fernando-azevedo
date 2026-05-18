@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
-import Svg, { Circle, Defs, Filter, FeGaussianBlur, FeMerge, FeMergeNode } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 import { colors, fonts } from '../theme/tokens';
 
 interface RingProps {
@@ -56,23 +56,16 @@ export const Ring: React.FC<RingProps> = ({
   const r = (size - strokeWidth) / 2;
   const c = 2 * Math.PI * r;
   const offset = c - (displayValue / 100) * c;
-  const filterId = `glowring-${primary.replace('#', '')}`;
 
   return (
     <View style={{ alignItems: 'center' }}>
       <View style={{ position: 'relative', width: size, height: size }}>
-        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <Defs>
-            {glow && (
-              <Filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
-                <FeGaussianBlur stdDeviation="3" result="b" />
-                <FeMerge>
-                  <FeMergeNode in="b" />
-                  <FeMergeNode in="SourceGraphic" />
-                </FeMerge>
-              </Filter>
-            )}
-          </Defs>
+        <Svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          style={{ transform: [{ rotate: '-90deg' }] }}
+        >
           <Circle
             cx={size / 2}
             cy={size / 2}
@@ -91,30 +84,31 @@ export const Ring: React.FC<RingProps> = ({
             strokeDasharray={c}
             strokeDashoffset={offset}
             strokeLinecap="round"
-            filter={glow ? `url(#${filterId})` : undefined}
-            rotation={-90}
-            origin={`${size / 2}, ${size / 2}`}
           />
         </Svg>
       </View>
 
       {label && (
         <View style={{ marginTop: 12, alignItems: 'center' }}>
-          <Text style={{
-            fontFamily: fonts.serif.display,
-            fontSize: 20,
-            color: colors.ink,
-            letterSpacing: -0.01,
-            fontWeight: '400',
-          }}>
+          <Text
+            style={{
+              fontFamily: fonts.serif.display,
+              fontSize: 20,
+              color: colors.ink,
+              letterSpacing: -0.01,
+              fontWeight: '400',
+            }}
+          >
             {displayValue}%
           </Text>
           {sublabel && (
-            <Text style={{
-              fontSize: 12,
-              color: colors.textMuted,
-              marginTop: 2,
-            }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: colors.textMuted,
+                marginTop: 2,
+              }}
+            >
               Insônia {sublabel.toLowerCase()}
             </Text>
           )}

@@ -3,8 +3,11 @@ export const colors = {
   // Background & surface
   background: '#070914',
   backgroundDeep: '#050715',
+  backgroundElevated: '#0A0D1F', // legacy support
   surface: 'rgba(255,255,255,0.04)',
   surfaceStrong: 'rgba(255,255,255,0.06)',
+  card: 'rgba(255,255,255,0.10)', // legacy support
+  cardStrong: '#141A33', // legacy support
 
   // Borders
   border: 'rgba(255,255,255,0.08)',
@@ -13,18 +16,22 @@ export const colors = {
   // Text
   ink: '#FAFAF7',
   inkSoft: '#F0E9FF',
+  text: '#FAFAF7', // legacy support
   textMuted: 'rgba(255,255,255,0.58)',
   dim: 'rgba(255,255,255,0.38)',
   ghost: 'rgba(255,255,255,0.16)',
 
   // Primary & accents
   primary: '#A76BFA',
+  primaryLight: '#AFA7FF', // legacy support
   primarySage: '#7CC9B4',
   primaryAmber: '#E8A86B',
   primaryBlue: '#6B9CFF',
   primaryRose: '#FF9FB5',
+  cyan: '#65D6FF', // legacy support
+  sunrise: '#F8C86A', // legacy support
 
-  // Status (legacy support)
+  // Status
   success: '#70E0A3',
   danger: '#FF6B7A',
   warning: '#FFA86B',

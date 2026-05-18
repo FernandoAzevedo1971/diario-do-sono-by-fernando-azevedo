@@ -17,7 +17,7 @@ export const NightBar: React.FC<NightBarProps> = ({
 }) => {
   return (
     <View style={{ marginTop: 18 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', fontSize: 10.5, marginBottom: 6 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
         <Text style={{
           fontFamily: fonts.mono.default,
           fontSize: 10.5,

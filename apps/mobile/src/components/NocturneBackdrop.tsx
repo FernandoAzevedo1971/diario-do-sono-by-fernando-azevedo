@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Dimensions } from 'react-native';
-import Svg, { Circle, Animate } from 'react-native-svg';
+import { View, Dimensions, Animated } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../theme/tokens';
 
 interface NocturneBackdropProps {
@@ -102,16 +102,8 @@ export const NocturneBackdrop: React.FC<NocturneBackdropProps> = ({
             cy={star.y}
             r={star.r}
             fill="#fff"
-            opacity="0.7"
-          >
-            <Animate
-              attributeName="opacity"
-              values="0.15;0.85;0.15"
-              dur={`${star.dur}s`}
-              begin={`${star.delay}s`}
-              repeatCount="indefinite"
-            />
-          </Circle>
+            opacity={0.7}
+          />
         ))}
       </Svg>
 

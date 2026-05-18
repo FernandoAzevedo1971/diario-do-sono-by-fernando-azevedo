@@ -254,9 +254,10 @@ const legendStyles = StyleSheet.create({
 
 // ─── GraphicSummaryScreen ────────────────────────────────────────────────────
 
-export function GraphicSummaryScreen({ entries, onBack }: {
+export function GraphicSummaryScreen({ entries, onBack, onReport }: {
   entries: SleepDiaryEntry[];
   onBack: () => void;
+  onReport: () => void;
 }) {
   // Last 14 entries, oldest first so charts flow left→right chronologically
   const recent = entries.slice(0, 14).reverse();
@@ -401,6 +402,7 @@ export function GraphicSummaryScreen({ entries, onBack }: {
           />
         </GlassCard>
 
+        <PrimaryButton label="Enviar ao Médico" onPress={onReport} />
         <PrimaryButton label="Voltar" variant="secondary" onPress={onBack} />
       </ScrollView>
     </AppBackground>

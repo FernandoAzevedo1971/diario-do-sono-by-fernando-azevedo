@@ -14,9 +14,10 @@ import { DiaryWizardScreen } from './src/screens/DiaryWizardScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
 import { GraphicSummaryScreen } from './src/screens/GraphicSummaryScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
+import { SendToDoctorScreen } from './src/screens/SendToDoctorScreen';
 import type { AuthenticatedUser, PatientProfile, SleepDiaryEntry } from './src/types';
 
-type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result' | 'summary';
+type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result' | 'summary' | 'report';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -188,10 +189,14 @@ export default function App() {
             setRoute('diary');
           }}
           onSummary={() => setRoute('summary')}
+          onReport={() => setRoute('report')}
         />
       )}
       {route === 'summary' && (
-        <GraphicSummaryScreen entries={entries} onBack={() => setRoute('today')} />
+        <GraphicSummaryScreen entries={entries} onBack={() => setRoute('today')} onReport={() => setRoute('report')} />
+      )}
+      {route === 'report' && profile && (
+        <SendToDoctorScreen profile={profile} entries={entries} onBack={() => setRoute('today')} />
       )}
       {route === 'diary' && (
         <DiaryWizardScreen

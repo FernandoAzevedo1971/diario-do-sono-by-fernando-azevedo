@@ -13,6 +13,7 @@ import { TodayScreen } from './src/screens/TodayScreen';
 import { DiaryWizardScreen } from './src/screens/DiaryWizardScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
 import { GraphicSummaryScreen } from './src/screens/GraphicSummaryScreen';
+import { SplashScreen } from './src/screens/SplashScreen';
 import type { AuthenticatedUser, PatientProfile, SleepDiaryEntry } from './src/types';
 
 type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result' | 'summary';
@@ -52,7 +53,11 @@ export default function App() {
     let isMounted = true;
 
     async function hydrate() {
-      const storedUser = await getInitialAuthenticatedUser();
+      const SPLASH_MIN_MS = 2800; // garante que a animação de abertura seja exibida
+      const [storedUser] = await Promise.all([
+        getInitialAuthenticatedUser(),
+        new Promise<void>((resolve) => setTimeout(resolve, SPLASH_MIN_MS)),
+      ]);
 
       if (!isMounted) {
         return;
@@ -164,7 +169,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <StatusBar style="light" />
-      {route === 'loading' && <WelcomeScreen onStart={() => undefined} />}
+      {route === 'loading' && <SplashScreen />}
       {route === 'welcome' && <WelcomeScreen onStart={() => setRoute(user ? 'profile' : 'auth')} />}
       {route === 'auth' && <AuthScreen onAuthenticated={handleAuthenticated} />}
       {route === 'profile' && <ProfileScreen initialEmail={user?.email ?? ''} onSave={handleSaveProfile} />}

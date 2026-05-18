@@ -13,10 +13,12 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: Authen
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function submit() {
     setError(null);
+    setSuccess(null);
 
     if (!email || !password) {
       setError('Informe email e senha.');
@@ -40,6 +42,9 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: Authen
   }
 
   async function resetPassword() {
+    setError(null);
+    setSuccess(null);
+
     if (!email) {
       setError('Informe seu email para recuperar a senha.');
       return;
@@ -47,7 +52,12 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: Authen
 
     try {
       await requestPasswordReset(email);
-      setError(isFirebaseConfigured() ? 'Email de recuperação enviado.' : 'Modo local: recuperação disponível após configurar o Firebase.');
+
+      if (isFirebaseConfigured()) {
+        setSuccess('Email de recuperação enviado. Verifique sua caixa de entrada.');
+      } else {
+        setSuccess('Modo local: recuperação disponível após configurar o Firebase.');
+      }
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Não foi possível enviar recuperação.');
     }
@@ -63,6 +73,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: Authen
           <TextInput style={styles.input} placeholder="Senha" placeholderTextColor={colors.textMuted} value={password} onChangeText={setPassword} secureTextEntry />
           {mode === 'register' ? <TextInput style={styles.input} placeholder="Confirmar senha" placeholderTextColor={colors.textMuted} value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
+          {success ? <Text style={styles.success}>{success}</Text> : null}
           {!isFirebaseConfigured() ? <Text style={styles.notice}>Firebase ainda não configurado: usando modo local de desenvolvimento.</Text> : null}
           <PrimaryButton label={loading ? 'Aguarde...' : mode === 'register' ? 'Criar conta' : 'Entrar'} onPress={submit} disabled={loading} />
           <PrimaryButton label={mode === 'register' ? 'Já tenho conta' : 'Criar nova conta'} variant="secondary" onPress={() => setMode(mode === 'register' ? 'login' : 'register')} />
@@ -80,5 +91,6 @@ const styles = StyleSheet.create({
   card: { gap: spacing.md },
   input: { minHeight: 54, borderRadius: 16, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.06)' },
   error: { color: colors.sunrise, lineHeight: 20 },
+  success: { color: '#4ade80', lineHeight: 20 },
   notice: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
 });

@@ -31,3 +31,11 @@ export async function scheduleDailyDiaryReminder(usualOutOfBedTime: string): Pro
   });
 }
 
+export async function cancelDailyDiaryReminder(): Promise<void> {
+  if (Platform.OS === 'web') {
+    return;
+  }
+
+  await Notifications.cancelAllScheduledNotificationsAsync();
+}
+

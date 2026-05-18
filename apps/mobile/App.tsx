@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { loadEntries, loadProfile, saveProfile, upsertEntry } from './src/storage/diaryRepository';
-import { scheduleDailyDiaryReminder } from './src/services/notificationService';
+import { cancelDailyDiaryReminder, scheduleDailyDiaryReminder } from './src/services/notificationService';
 import { getInitialAuthenticatedUser, subscribeToAuthenticatedUser } from './src/services/authService';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
@@ -68,6 +68,18 @@ export default function App() {
     const [storedProfile, storedEntries] = await Promise.all([loadProfile(account), loadEntries(account)]);
     setProfile(storedProfile);
     setEntries(storedEntries);
+
+    if (storedProfile) {
+      const today = new Date().toISOString().split('T')[0];
+      const hasTodayEntry = storedEntries.some((e) => e.input.entryDate === today);
+
+      if (hasTodayEntry) {
+        await cancelDailyDiaryReminder();
+      } else {
+        await scheduleDailyDiaryReminder(storedProfile.usualOutOfBedTime);
+      }
+    }
+
     setRoute(storedProfile ? 'today' : 'profile');
   }
 
@@ -120,6 +132,7 @@ export default function App() {
     setEntries(nextEntries);
     setLastSavedEntry(entry);
     setEditingEntry(null);
+    await cancelDailyDiaryReminder();
     setRoute('result');
   }
 

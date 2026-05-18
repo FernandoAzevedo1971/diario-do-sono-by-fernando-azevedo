@@ -43,6 +43,11 @@ export interface SleepDiaryMetrics {
   perceivedCalculatedDiffMinutes: number;
 }
 
+export interface CategoricalCount<T extends string> {
+  counts: Record<T, number>;
+  mode: T | null;
+}
+
 export interface SleepDiaryAverages {
   daysCount: number;
   lisMinutes: number;
@@ -54,6 +59,9 @@ export interface SleepDiaryAverages {
   ttsPerceivedMinutes: number;
   sleepEfficiencyPercent: number;
   perceivedCalculatedDiffMinutes: number;
+  sleepQuality: CategoricalCount<SleepQuality>;
+  morningFeeling: CategoricalCount<DailyFeeling>;
+  daytimeFeeling: CategoricalCount<DailyFeeling>;
 }
 
 export interface ValidationIssue {

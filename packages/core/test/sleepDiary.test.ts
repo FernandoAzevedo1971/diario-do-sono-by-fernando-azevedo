@@ -64,7 +64,7 @@ test('defines ISI answer labels per item', () => {
 });
 
 test('calculates sleep diary averages', () => {
-  const first = calculateSleepDiary({
+  const firstInput = {
     entryDate: '2026-05-17',
     bedTime: '22:30',
     sleepLatencyMinutes: 30,
@@ -73,11 +73,11 @@ test('calculates sleep diary averages', () => {
     finalWakeTime: '06:30',
     outOfBedLatencyMinutes: 20,
     perceivedSleepMinutes: 420,
-    sleepQuality: 'regular',
-    morningFeeling: 'tired',
-  });
+    sleepQuality: 'regular' as const,
+    morningFeeling: 'tired' as const,
+  };
 
-  const second = calculateSleepDiary({
+  const secondInput = {
     entryDate: '2026-05-18',
     bedTime: '23:00',
     sleepLatencyMinutes: 20,
@@ -86,15 +86,24 @@ test('calculates sleep diary averages', () => {
     finalWakeTime: '06:00',
     outOfBedLatencyMinutes: 10,
     perceivedSleepMinutes: 390,
-    sleepQuality: 'good',
-    morningFeeling: 'rested',
-  });
+    sleepQuality: 'good' as const,
+    morningFeeling: 'tired' as const,
+  };
 
-  const averages = calculateSleepDiaryAverages([first.metrics, second.metrics]);
+  const first = calculateSleepDiary(firstInput);
+  const second = calculateSleepDiary(secondInput);
+
+  const averages = calculateSleepDiaryAverages([
+    { input: firstInput, metrics: first.metrics },
+    { input: secondInput, metrics: second.metrics },
+  ]);
 
   assert.equal(averages.daysCount, 2);
   assert.equal(averages.lisMinutes, 25);
   assert.equal(averages.wasoMinutes, 35);
   assert.equal(averages.fragmentationCount, 1.5);
   assert.equal(averages.sleepEfficiencyPercent, 84);
+  assert.equal(averages.sleepQuality.counts.good, 1);
+  assert.equal(averages.sleepQuality.counts.regular, 1);
+  assert.equal(averages.morningFeeling.mode, 'tired');
 });

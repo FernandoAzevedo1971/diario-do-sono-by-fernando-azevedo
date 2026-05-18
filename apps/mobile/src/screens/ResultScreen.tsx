@@ -8,13 +8,25 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 import type { SleepDiaryEntry } from '../types';
 
+const SLEEP_QUALITY_LABEL: Record<string, string> = {
+  good: 'Boa',
+  regular: 'Regular',
+  bad: 'Ruim',
+};
+
+const FEELING_LABEL: Record<string, string> = {
+  rested: 'Descansado',
+  tired: 'Cansado',
+  sleepy: 'Sonolento',
+};
+
 export function ResultScreen({ entry, entries, onFinish, onAddAnother }: {
   entry: SleepDiaryEntry;
   entries: SleepDiaryEntry[];
   onFinish: () => void;
   onAddAnother: () => void;
 }) {
-  const averages = calculateSleepDiaryAverages(entries.map((currentEntry) => currentEntry.metrics));
+  const averages = calculateSleepDiaryAverages(entries.map((e) => ({ input: e.input, metrics: e.metrics })));
 
   return (
     <AppBackground>
@@ -41,6 +53,24 @@ export function ResultScreen({ entry, entries, onFinish, onAddAnother }: {
             <MetricCard label="WASO médio" value={`${averages.wasoMinutes} min`} />
             <MetricCard label="LIS médio" value={`${averages.lisMinutes} min`} />
             <MetricCard label="Despertares" value={`${averages.fragmentationCount}`} />
+            {averages.sleepQuality.mode ? (
+              <MetricCard
+                label="Qualidade mais frequente"
+                value={SLEEP_QUALITY_LABEL[averages.sleepQuality.mode] ?? averages.sleepQuality.mode}
+              />
+            ) : null}
+            {averages.morningFeeling.mode ? (
+              <MetricCard
+                label="Sensação ao acordar"
+                value={FEELING_LABEL[averages.morningFeeling.mode] ?? averages.morningFeeling.mode}
+              />
+            ) : null}
+            {averages.daytimeFeeling.mode ? (
+              <MetricCard
+                label="Sensação diurna"
+                value={FEELING_LABEL[averages.daytimeFeeling.mode] ?? averages.daytimeFeeling.mode}
+              />
+            ) : null}
           </View>
         </GlassCard>
         <PrimaryButton label="Inserir mais um dia" onPress={onAddAnother} />

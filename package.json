@@ -1,0 +1,21 @@
+{
+  "name": "diario-do-sono",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm --workspace @diario-do-sono/mobile run start",
+    "mobile:android": "npm --workspace @diario-do-sono/mobile run android",
+    "mobile:ios": "npm --workspace @diario-do-sono/mobile run ios",
+    "mobile:export:web": "npm --workspace @diario-do-sono/mobile run export:web",
+    "core:build": "npm --workspace @diario-do-sono/core run build",
+    "core:test": "npm --workspace @diario-do-sono/core run test",
+    "typecheck": "npm --workspaces --if-present run typecheck"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}

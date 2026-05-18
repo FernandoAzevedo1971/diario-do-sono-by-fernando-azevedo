@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "DIÁRIO DO SONO",
+    "slug": "diario-do-sono",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "diariodosono",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "br.com.diariodosono.app"
+    },
+    "android": {
+      "package": "br.com.diariodosono.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#080B1F"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "themeColor": "#080B1F",
+      "backgroundColor": "#080B1F",
+      "name": "Diário do Sono",
+      "shortName": "Sono",
+      "description": "Seu diário clínico do sono",
+      "lang": "pt-BR",
+      "scope": "/",
+      "display": "standalone",
+      "orientation": "portrait"
+    },
+    "plugins": [
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "replace-after-eas-init"
+      }
+    }
+  }
+}

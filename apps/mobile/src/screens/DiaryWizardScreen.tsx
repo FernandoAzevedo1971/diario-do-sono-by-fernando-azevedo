@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { calculateSleepDiary, type DailyFeeling, type SleepDiaryInput, type SleepQuality } from '@diario-do-sono/core';
 import { AppBackground } from '../components/AppBackground';
+import { DurationInput, StepperInput, TimeInput } from '../components/DiaryInputs';
 import { GlassCard } from '../components/GlassCard';
 import { OptionCard } from '../components/OptionCard';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -50,31 +51,31 @@ export function DiaryWizardScreen({ editingEntry, onCancel, onSave }: {
   const steps = [
     {
       title: 'A que horas você foi para a cama ontem?',
-      content: <TextInput style={styles.input} value={input.bedTime} onChangeText={(value) => setInput({ ...input, bedTime: value })} />,
+      content: <TimeInput value={input.bedTime} onChange={(value) => setInput({ ...input, bedTime: value })} rangeStart="18:00" rangeEnd="02:00" />,
     },
     {
       title: 'Quanto tempo estima que demorou para dormir?',
-      content: <NumberInput value={input.sleepLatencyMinutes} onChange={(value) => setInput({ ...input, sleepLatencyMinutes: value })} suffix="min" />,
+      content: <StepperInput value={input.sleepLatencyMinutes} onChange={(value) => setInput({ ...input, sleepLatencyMinutes: value })} suffix="minutos" step={5} />,
     },
     {
       title: 'Quantas vezes você acordou durante a noite?',
-      content: <NumberInput value={input.nightAwakeningsCount} onChange={(value) => setInput({ ...input, nightAwakeningsCount: value })} suffix="vezes" />,
+      content: <StepperInput value={input.nightAwakeningsCount} onChange={(value) => setInput({ ...input, nightAwakeningsCount: value })} suffix="vezes" step={1} />,
     },
     {
       title: 'No total, quanto tempo ficou acordado durante a noite?',
-      content: <NumberInput value={input.wasoMinutes} onChange={(value) => setInput({ ...input, wasoMinutes: value })} suffix="min" />,
+      content: <StepperInput value={input.wasoMinutes} onChange={(value) => setInput({ ...input, wasoMinutes: value })} suffix="minutos" step={5} />,
     },
     {
       title: 'A que horas você acordou definitivamente?',
-      content: <TextInput style={styles.input} value={input.finalWakeTime} onChangeText={(value) => setInput({ ...input, finalWakeTime: value })} />,
+      content: <TimeInput value={input.finalWakeTime} onChange={(value) => setInput({ ...input, finalWakeTime: value })} rangeStart="04:00" rangeEnd="14:00" />,
     },
     {
       title: 'Quanto tempo demorou para sair da cama?',
-      content: <NumberInput value={input.outOfBedLatencyMinutes} onChange={(value) => setInput({ ...input, outOfBedLatencyMinutes: value })} suffix="min" />,
+      content: <StepperInput value={input.outOfBedLatencyMinutes} onChange={(value) => setInput({ ...input, outOfBedLatencyMinutes: value })} suffix="minutos" step={5} />,
     },
     {
       title: 'Ao todo, quanto tempo acha que dormiu?',
-      content: <NumberInput value={input.perceivedSleepMinutes} onChange={(value) => setInput({ ...input, perceivedSleepMinutes: value })} suffix="min" />,
+      content: <DurationInput minutes={input.perceivedSleepMinutes} onChange={(value) => setInput({ ...input, perceivedSleepMinutes: value })} />,
     },
     {
       title: 'Como foi a qualidade do sono esta noite?',
@@ -108,12 +109,12 @@ export function DiaryWizardScreen({ editingEntry, onCancel, onSave }: {
                 value={input.alcoholUse.amount ?? ''}
                 onChangeText={(value) => setInput({ ...input, alcoholUse: { ...input.alcoholUse, used: true, amount: value } })}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Até que horário? HH:mm"
-                placeholderTextColor={colors.textMuted}
-                value={input.alcoholUse.untilTime ?? ''}
-                onChangeText={(value) => setInput({ ...input, alcoholUse: { ...input.alcoholUse, used: true, untilTime: value } })}
+              <Text style={styles.fieldLabel}>Até que horário?</Text>
+              <TimeInput
+                value={input.alcoholUse.untilTime ?? '20:00'}
+                onChange={(value) => setInput({ ...input, alcoholUse: { ...input.alcoholUse, used: true, untilTime: value } })}
+                rangeStart="16:00"
+                rangeEnd="02:00"
               />
             </>
           ) : null}
@@ -149,12 +150,12 @@ export function DiaryWizardScreen({ editingEntry, onCancel, onSave }: {
                 value={input.physicalActivity.description ?? ''}
                 onChangeText={(value) => setInput({ ...input, physicalActivity: { ...input.physicalActivity, didActivity: true, description: value } })}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Horário em que encerrou HH:mm"
-                placeholderTextColor={colors.textMuted}
-                value={input.physicalActivity.endTime ?? ''}
-                onChangeText={(value) => setInput({ ...input, physicalActivity: { ...input.physicalActivity, didActivity: true, endTime: value } })}
+              <Text style={styles.fieldLabel}>Horário em que encerrou</Text>
+              <TimeInput
+                value={input.physicalActivity.endTime ?? '19:00'}
+                onChange={(value) => setInput({ ...input, physicalActivity: { ...input.physicalActivity, didActivity: true, endTime: value } })}
+                rangeStart="05:00"
+                rangeEnd="23:00"
               />
             </>
           ) : null}
@@ -213,15 +214,6 @@ export function DiaryWizardScreen({ editingEntry, onCancel, onSave }: {
   );
 }
 
-function NumberInput({ value, onChange, suffix }: { value: number; onChange: (value: number) => void; suffix: string }) {
-  return (
-    <View style={styles.numberRow}>
-      <TextInput style={styles.numberInput} keyboardType="number-pad" value={String(value)} onChangeText={(text) => onChange(Number(text.replace(/\D/g, '')) || 0)} />
-      <Text style={styles.suffix}>{suffix}</Text>
-    </View>
-  );
-}
-
 function ChoiceGroup({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: Array<[string, string]> }) {
   return (
     <View style={styles.choiceGroup}>
@@ -235,12 +227,9 @@ const styles = StyleSheet.create({
   progress: { color: colors.cyan, fontSize: 14, fontWeight: '800' },
   title: { color: colors.text, fontSize: 27, fontWeight: '900', lineHeight: 34 },
   card: { gap: spacing.md },
-  input: { minHeight: 64, color: colors.text, fontSize: 30, fontWeight: '800', textAlign: 'center', borderBottomColor: colors.border, borderBottomWidth: 1 },
-  numberRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: spacing.sm },
-  numberInput: { color: colors.text, fontSize: 54, fontWeight: '900', minWidth: 110, textAlign: 'center' },
-  suffix: { color: colors.textMuted, fontSize: 18, paddingBottom: 10 },
   choiceGroup: { gap: spacing.md },
   optionalGroup: { gap: spacing.md },
+  fieldLabel: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
   textArea: { minHeight: 88, borderRadius: 16, borderWidth: 1, borderColor: colors.border, color: colors.text, padding: 14, textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.06)' },
   actions: { flexDirection: 'row', gap: spacing.md },
   warningCard: { gap: spacing.sm },

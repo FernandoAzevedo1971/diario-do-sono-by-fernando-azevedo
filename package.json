@@ -10,6 +10,7 @@
     "mobile": "npm --workspace @diario-do-sono/mobile run start",
     "mobile:android": "npm --workspace @diario-do-sono/mobile run android",
     "mobile:ios": "npm --workspace @diario-do-sono/mobile run ios",
+    "mobile:export:web": "npm --workspace @diario-do-sono/mobile run export:web",
     "core:test": "npm --workspace @diario-do-sono/core run test",
     "typecheck": "npm --workspaces --if-present run typecheck"
   },

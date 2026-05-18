@@ -17,7 +17,7 @@ export function TodayScreen({ profile, entries, onNewEntry, onEditEntry }: {
   const today = new Date().toISOString().slice(0, 10);
   const todayEntry = entries.find((entry) => entry.input.entryDate === today);
   const latestEntry = todayEntry ?? entries[0];
-  const averages = calculateSleepDiaryAverages(entries.map((entry) => entry.metrics));
+  const averages = calculateSleepDiaryAverages(entries.map((entry) => ({ input: entry.input, metrics: entry.metrics })));
   const recentEntries = entries.slice(0, 5);
 
   return (

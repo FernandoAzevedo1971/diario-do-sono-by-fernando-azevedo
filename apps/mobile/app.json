@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "DIÁRIO DO SONO",
+    "slug": "diario-do-sono",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "diariodosono",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "br.com.diariodosono.app"
+    },
+    "android": {
+      "package": "br.com.diariodosono.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#080B1F"
+      }
+    },
+    "plugins": [
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "replace-after-eas-init"
+      }
+    }
+  }
+}

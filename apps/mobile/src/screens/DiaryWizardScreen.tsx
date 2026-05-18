@@ -1,13 +1,17 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { calculateSleepDiary, type DailyFeeling, type SleepDiaryInput, type SleepQuality } from '@diario-do-sono/core';
-import { AppBackground } from '../components/AppBackground';
-import { DurationInput, StepperInput, TimeInput } from '../components/DiaryInputs';
-import { GlassCard } from '../components/GlassCard';
-import { SleepTimeline } from '../components/SleepTimeline';
-import { OptionCard } from '../components/OptionCard';
-import { PrimaryButton } from '../components/PrimaryButton';
-import { colors, spacing } from '../theme/tokens';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+  useColorScheme,
+} from 'react-native';
+import { calculateSleepDiary, type SleepDiaryInput } from '@diario-do-sono/core';
+import { NocturneBackdrop } from '../components/NocturneBackdrop';
+import { colors, fonts, spacing } from '../theme/tokens';
 import type { SleepDiaryEntry } from '../types';
 
 function todayIsoDate() {
@@ -16,32 +20,27 @@ function todayIsoDate() {
 
 const initialInput: SleepDiaryInput = {
   entryDate: todayIsoDate(),
-  bedTime: '22:30',
-  sleepLatencyMinutes: 20,
+  bedTime: '23:14',
+  sleepLatencyMinutes: 11,
   nightAwakeningsCount: 1,
-  wasoMinutes: 20,
-  finalWakeTime: '06:30',
+  wasoMinutes: 6,
+  finalWakeTime: '07:08',
   outOfBedLatencyMinutes: 15,
-  perceivedSleepMinutes: 420,
-  sleepQuality: 'regular',
-  morningFeeling: 'tired',
-  alcoholUse: {
-    used: false,
-    untilTime: null,
-    amount: null,
-    beverage: null,
-  },
-  physicalActivity: {
-    didActivity: false,
-    intensity: null,
-    endTime: null,
-    description: null,
-  },
+  perceivedSleepMinutes: 446,
+  sleepQuality: 'good',
+  morningFeeling: 'rested',
+  alcoholUse: { used: false, untilTime: null, amount: null, beverage: null },
+  physicalActivity: { didActivity: false, intensity: null, endTime: null, description: null },
   daytimeFeeling: null,
   sleepMedication: { used: false, name: null, dose: null, time: null },
 };
 
-export function DiaryWizardScreen({ editingEntry, previousEntry, onCancel, onSave }: {
+export function DiaryWizardScreen({
+  editingEntry,
+  previousEntry,
+  onCancel,
+  onSave,
+}: {
   editingEntry?: SleepDiaryEntry | null;
   previousEntry?: SleepDiaryEntry | null;
   onCancel: () => void;
@@ -52,260 +51,430 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, onCancel, onSav
   const result = useMemo(() => calculateSleepDiary(input), [input]);
 
   const steps = [
-    {
-      title: 'A que horas você foi para a cama ontem?',
-      content: <TimeInput value={input.bedTime} onChange={(value) => setInput({ ...input, bedTime: value })} rangeStart="18:00" rangeEnd="02:00" />,
-    },
-    {
-      title: 'Quanto tempo estima que demorou para dormir?',
-      content: <StepperInput value={input.sleepLatencyMinutes} onChange={(value) => setInput({ ...input, sleepLatencyMinutes: value })} suffix="minutos" step={5} />,
-    },
-    {
-      title: 'Quantas vezes você acordou durante a noite?',
-      content: <StepperInput value={input.nightAwakeningsCount} onChange={(value) => setInput({ ...input, nightAwakeningsCount: value })} suffix="vezes" step={1} />,
-    },
-    {
-      title: 'No total, quanto tempo ficou acordado durante a noite?',
-      content: <StepperInput value={input.wasoMinutes} onChange={(value) => setInput({ ...input, wasoMinutes: value })} suffix="minutos" step={5} />,
-    },
-    {
-      title: 'A que horas você acordou definitivamente?',
-      content: <TimeInput value={input.finalWakeTime} onChange={(value) => setInput({ ...input, finalWakeTime: value })} rangeStart="04:00" rangeEnd="14:00" />,
-    },
-    {
-      title: 'Quanto tempo demorou para sair da cama?',
-      content: <StepperInput value={input.outOfBedLatencyMinutes} onChange={(value) => setInput({ ...input, outOfBedLatencyMinutes: value })} suffix="minutos" step={5} />,
-    },
-    {
-      title: 'Ao todo, quanto tempo acha que dormiu?',
-      content: <DurationInput minutes={input.perceivedSleepMinutes} onChange={(value) => setInput({ ...input, perceivedSleepMinutes: value })} />,
-    },
-    {
-      title: 'Como foi a qualidade do sono esta noite?',
-      content: <ChoiceGroup value={input.sleepQuality} onChange={(value) => setInput({ ...input, sleepQuality: value as SleepQuality })} options={[['good', 'Boa ou muito boa'], ['regular', 'Regular ou média'], ['bad', 'Ruim ou péssima']]} />,
-    },
-    {
-      title: 'Como se sente nesta manhã?',
-      content: <ChoiceGroup value={input.morningFeeling} onChange={(value) => setInput({ ...input, morningFeeling: value as DailyFeeling })} options={[['rested', 'Descansado'], ['tired', 'Cansado'], ['sleepy', 'Sonolento']]} />,
-    },
-    {
-      title: 'Ingeriu álcool ontem?',
-      content: (
-        <View style={styles.optionalGroup}>
-          <ChoiceGroup
-            value={input.alcoholUse?.used ? 'yes' : 'no'}
-            onChange={(value) => setInput({
-              ...input,
-              alcoholUse: value === 'yes'
-                ? { used: true, amount: input.alcoholUse?.amount ?? '', beverage: input.alcoholUse?.beverage ?? '', untilTime: input.alcoholUse?.untilTime ?? '' }
-                : { used: false, amount: null, beverage: null, untilTime: null },
-            })}
-            options={[['no', 'NÃO'], ['yes', 'SIM']]}
-          />
-          {input.alcoholUse?.used ? (
-            <>
-              <TextInput
-                style={styles.textArea}
-                multiline
-                placeholder="Quantidade e qual bebida"
-                placeholderTextColor={colors.textMuted}
-                value={input.alcoholUse.amount ?? ''}
-                onChangeText={(value) => setInput({ ...input, alcoholUse: { ...input.alcoholUse, used: true, amount: value } })}
-              />
-              <Text style={styles.fieldLabel}>Até que horário?</Text>
-              <TimeInput
-                value={input.alcoholUse.untilTime ?? '20:00'}
-                onChange={(value) => setInput({ ...input, alcoholUse: { ...input.alcoholUse, used: true, untilTime: value } })}
-                rangeStart="16:00"
-                rangeEnd="02:00"
-              />
-            </>
-          ) : null}
-        </View>
-      ),
-    },
-    {
-      title: 'Fez atividade física ontem?',
-      content: (
-        <View style={styles.optionalGroup}>
-          <ChoiceGroup
-            value={input.physicalActivity?.didActivity ? 'yes' : 'no'}
-            onChange={(value) => setInput({
-              ...input,
-              physicalActivity: value === 'yes'
-                ? { didActivity: true, intensity: input.physicalActivity?.intensity ?? 'light', description: input.physicalActivity?.description ?? '', endTime: input.physicalActivity?.endTime ?? '' }
-                : { didActivity: false, intensity: null, description: null, endTime: null },
-            })}
-            options={[['no', 'NÃO'], ['yes', 'SIM']]}
-          />
-          {input.physicalActivity?.didActivity ? (
-            <>
-              <ChoiceGroup
-                value={input.physicalActivity.intensity ?? 'light'}
-                onChange={(value) => setInput({ ...input, physicalActivity: { ...input.physicalActivity, didActivity: true, intensity: value as 'light' | 'intense' } })}
-                options={[['light', 'Exercício leve'], ['intense', 'Exercício intenso']]}
-              />
-              <TextInput
-                style={styles.textArea}
-                multiline
-                placeholder="Descreva a atividade, se quiser"
-                placeholderTextColor={colors.textMuted}
-                value={input.physicalActivity.description ?? ''}
-                onChangeText={(value) => setInput({ ...input, physicalActivity: { ...input.physicalActivity, didActivity: true, description: value } })}
-              />
-              <Text style={styles.fieldLabel}>Horário em que encerrou</Text>
-              <TimeInput
-                value={input.physicalActivity.endTime ?? '19:00'}
-                onChange={(value) => setInput({ ...input, physicalActivity: { ...input.physicalActivity, didActivity: true, endTime: value } })}
-                rangeStart="05:00"
-                rangeEnd="23:00"
-              />
-            </>
-          ) : null}
-        </View>
-      ),
-    },
-    {
-      title: 'Usou alguma medicação para dormir ontem?',
-      content: (
-        <View style={styles.optionalGroup}>
-          <ChoiceGroup
-            value={input.sleepMedication?.used ? 'yes' : 'no'}
-            onChange={(value) => setInput({
-              ...input,
-              sleepMedication: value === 'yes'
-                ? { used: true, name: input.sleepMedication?.name ?? '', dose: input.sleepMedication?.dose ?? '', time: input.sleepMedication?.time ?? '22:00' }
-                : { used: false, name: null, dose: null, time: null },
-            })}
-            options={[['no', 'NÃO'], ['yes', 'SIM']]}
-          />
-          {input.sleepMedication?.used ? (
-            <>
-              {previousEntry?.input.sleepMedication?.used ? (
-                <OptionCard
-                  label={`Repetir do dia anterior: ${previousEntry.input.sleepMedication.name ?? ''} ${previousEntry.input.sleepMedication.dose ?? ''}`}
-                  onPress={() => setInput({
-                    ...input,
-                    sleepMedication: { ...previousEntry.input.sleepMedication, used: true },
-                  })}
-                  style={styles.repeatBtn}
-                />
-              ) : null}
-              <TextInput
-                style={styles.textArea}
-                placeholder="Nome do medicamento"
-                placeholderTextColor={colors.textMuted}
-                value={input.sleepMedication.name ?? ''}
-                onChangeText={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, name: value } })}
-              />
-              <TextInput
-                style={styles.textArea}
-                placeholder="Dose (ex: 10mg)"
-                placeholderTextColor={colors.textMuted}
-                value={input.sleepMedication.dose ?? ''}
-                onChangeText={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, dose: value } })}
-              />
-              <Text style={styles.fieldLabel}>Horário que tomou</Text>
-              <TimeInput
-                value={input.sleepMedication.time ?? '22:00'}
-                onChange={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, time: value } })}
-                rangeStart="18:00"
-                rangeEnd="02:00"
-              />
-            </>
-          ) : null}
-        </View>
-      ),
-    },
-    {
-      title: 'Como se sentiu durante o dia?',
-      content: <ChoiceGroup value={input.daytimeFeeling ?? ''} onChange={(value) => setInput({ ...input, daytimeFeeling: value as DailyFeeling })} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />,
-    },
+    { key: 'bedtime', q: 'Que horas você deitou?', kind: 'time' as const },
+    { key: 'latency', q: 'Quanto tempo levou para dormir?', kind: 'num' as const, unit: 'min' },
+    { key: 'waso', q: 'Acordou durante a noite?', kind: 'num' as const, unit: 'min' },
+    { key: 'mood', q: 'Como se sente ao acordar?', kind: 'scale' as const },
   ];
 
-  const currentStep = steps[step];
+  const s = steps[step];
   const isLastStep = step === steps.length - 1;
 
+  const handleTimeChange = (value: string) => {
+    if (s.kind === 'time') {
+      setInput({ ...input, bedTime: value });
+    }
+  };
+
+  const handleNumChange = (value: number) => {
+    if (s.key === 'latency') {
+      setInput({ ...input, sleepLatencyMinutes: value });
+    } else if (s.key === 'waso') {
+      setInput({ ...input, wasoMinutes: value });
+    }
+  };
+
+  const handleMoodChange = (mood: number) => {
+    const feelingMap: { [key: number]: string } = {
+      1: 'sleepy',
+      2: 'tired',
+      3: 'regular',
+      4: 'rested',
+      5: 'rested',
+    };
+    setInput({ ...input, morningFeeling: feelingMap[mood] as any });
+  };
+
+  const handleSave = () => {
+    if (!result.isValid) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    onSave({
+      id: editingEntry?.id ?? `${input.entryDate}-${Date.now()}`,
+      input,
+      metrics: result.metrics,
+      createdAt: editingEntry?.createdAt ?? now,
+      updatedAt: now,
+      syncStatus: 'local',
+      version: editingEntry?.version ?? 1,
+    });
+  };
+
+  const handleNext = () => {
+    if (isLastStep) {
+      handleSave();
+    } else {
+      setStep(step + 1);
+    }
+  };
+
+  const progressPercent = ((step + 1) / steps.length) * 100;
+
   return (
-    <AppBackground>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.progress}>Pergunta {step + 1} de {steps.length}</Text>
+    <View style={styles.container}>
+      <NocturneBackdrop primary={colors.primary} withMoon={false} />
 
-        {/* Live timeline preview — updates as the user fills in each step */}
-        <GlassCard style={styles.timelineCard}>
-          <SleepTimeline
-            bedTime={input.bedTime}
-            sleepLatencyMinutes={input.sleepLatencyMinutes}
-            nightAwakeningsCount={input.nightAwakeningsCount}
-            wasoMinutes={input.wasoMinutes}
-            finalWakeTime={input.finalWakeTime}
-            outOfBedLatencyMinutes={input.outOfBedLatencyMinutes}
-            outOfBedTime={result.isValid ? result.metrics.outOfBedTime : input.finalWakeTime}
-            onChangeBedTime={(v) => setInput({ ...input, bedTime: v })}
-            onChangeFinalWakeTime={(v) => setInput({ ...input, finalWakeTime: v })}
-          />
-        </GlassCard>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.content}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Pressable onPress={onCancel}>
+              <Text style={styles.backBtn}>← Voltar</Text>
+            </Pressable>
+            <Text style={styles.progress}>
+              {String(step + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}
+            </Text>
+          </View>
 
-        <Text style={styles.title}>{currentStep.title}</Text>
-        <GlassCard style={styles.card}>{currentStep.content}</GlassCard>
-        {result.issues.length > 0 && isLastStep ? (
-          <GlassCard style={styles.warningCard}>
-            {result.issues.map((issue) => <Text key={`${issue.field}-${issue.message}`} style={issue.severity === 'error' ? styles.error : styles.warning}>{issue.message}</Text>)}
-          </GlassCard>
-        ) : null}
-        <View style={styles.actions}>
-          <PrimaryButton label={step === 0 ? 'Cancelar' : 'Voltar'} variant="secondary" onPress={() => (step === 0 ? onCancel() : setStep(step - 1))} />
-          <PrimaryButton
-            label={isLastStep ? 'Salvar diário' : 'Continuar'}
-            onPress={() => {
-              if (!isLastStep) {
-                setStep(step + 1);
-                return;
-              }
+          {/* Progress bar */}
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+          </View>
 
-              if (!result.isValid) {
-                return;
-              }
+          {/* Question */}
+          <Text style={styles.question}>{s.q}</Text>
 
-              const now = new Date().toISOString();
-              onSave({
-                id: editingEntry?.id ?? `${input.entryDate}-${Date.now()}`,
-                input,
-                metrics: result.metrics,
-                createdAt: editingEntry?.createdAt ?? now,
-                updatedAt: now,
-                syncStatus: 'local',
-                version: editingEntry?.version ?? 1,
-              });
-            }}
-          />
+          {/* Answer card */}
+          <View style={styles.answerCard}>
+            {s.kind === 'time' && (
+              <TimeInput
+                value={input.bedTime}
+                onChange={handleTimeChange}
+              />
+            )}
+
+            {s.kind === 'num' && (
+              <NumericInput
+                value={s.key === 'latency' ? input.sleepLatencyMinutes : input.wasoMinutes}
+                onChange={handleNumChange}
+                unit={s.unit || ''}
+              />
+            )}
+
+            {s.kind === 'scale' && (
+              <ScaleInput
+                value={getMoodValue(input.morningFeeling)}
+                onChange={handleMoodChange}
+              />
+            )}
+          </View>
+
+          {/* Navigation buttons */}
+          <View style={styles.buttons}>
+            {step > 0 && (
+              <Pressable style={styles.prevBtn} onPress={() => setStep(step - 1)}>
+                <Text style={styles.prevBtnText}>Anterior</Text>
+              </Pressable>
+            )}
+            <Pressable
+              style={[styles.nextBtn, step === 0 && { flex: 2 }]}
+              onPress={handleNext}
+            >
+              <Text style={styles.nextBtnText}>
+                {isLastStep ? 'Concluir' : 'Próximo'}
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
-    </AppBackground>
-  );
-}
-
-function ChoiceGroup({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: Array<[string, string]> }) {
-  return (
-    <View style={styles.choiceGroup}>
-      {options.map(([optionValue, label]) => <OptionCard key={optionValue} label={label} selected={value === optionValue} onPress={() => onChange(optionValue)} />)}
     </View>
   );
 }
 
+function TimeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <View style={timeInputStyles.container}>
+      <TextInput
+        style={timeInputStyles.input}
+        value={value}
+        onChangeText={onChange}
+        placeholder="HH:MM"
+        placeholderTextColor={colors.dim}
+        maxLength={5}
+      />
+    </View>
+  );
+}
+
+function NumericInput({
+  value,
+  onChange,
+  unit,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  unit: string;
+}) {
+  return (
+    <View style={numInputStyles.container}>
+      <View style={numInputStyles.valueRow}>
+        <Pressable onPress={() => onChange(Math.max(0, value - 1))}>
+          <Text style={numInputStyles.btn}>−</Text>
+        </Pressable>
+
+        <View style={numInputStyles.value}>
+          <Text style={numInputStyles.number}>{value}</Text>
+        </View>
+
+        <Pressable onPress={() => onChange(value + 1)}>
+          <Text style={numInputStyles.btn}>+</Text>
+        </Pressable>
+      </View>
+      <Text style={numInputStyles.unit}>{unit}</Text>
+    </View>
+  );
+}
+
+function ScaleInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <View style={scaleInputStyles.container}>
+      <View style={scaleInputStyles.scale}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Pressable
+            key={n}
+            onPress={() => onChange(n)}
+            style={[
+              scaleInputStyles.chip,
+              value === n && scaleInputStyles.chipActive,
+            ]}
+          >
+            <Text
+              style={[
+                scaleInputStyles.chipText,
+                value === n && scaleInputStyles.chipTextActive,
+              ]}
+            >
+              {n}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={scaleInputStyles.labels}>
+        <Text style={scaleInputStyles.label}>Exausta</Text>
+        <Text style={scaleInputStyles.label}>Descansada</Text>
+      </View>
+    </View>
+  );
+}
+
+function getMoodValue(feeling: string): number {
+  const map: { [key: string]: number } = {
+    sleepy: 1,
+    tired: 2,
+    regular: 3,
+    rested: 5,
+  };
+  return map[feeling] || 3;
+}
+
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingBottom: spacing.xl },
-  progress: { color: colors.cyan, fontSize: 14, fontWeight: '800' },
-  title: { color: colors.text, fontSize: 27, fontWeight: '900', lineHeight: 34 },
-  card: { gap: spacing.md },
-  timelineCard: { paddingHorizontal: spacing.xs },
-  choiceGroup: { gap: spacing.md },
-  optionalGroup: { gap: spacing.md },
-  fieldLabel: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
-  repeatBtn: { borderColor: colors.cyan, backgroundColor: 'rgba(101,214,255,0.08)' },
-  textArea: { minHeight: 88, borderRadius: 16, borderWidth: 1, borderColor: colors.border, color: colors.text, padding: 14, textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.06)' },
-  actions: { flexDirection: 'row', gap: spacing.md },
-  warningCard: { gap: spacing.sm },
-  warning: { color: colors.sunrise },
-  error: { color: colors.danger },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    position: 'relative',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  backBtn: {
+    fontSize: 13,
+    color: colors.ink,
+    fontWeight: '500',
+  },
+  progress: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontFamily: fonts.mono.default,
+    letterSpacing: 0.08,
+    fontWeight: '500',
+  },
+  progressBar: {
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: 18,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 2,
+    transition: 'width 420ms cubic-bezier(0.22, 0.61, 0.36, 1)',
+  },
+  question: {
+    fontFamily: fonts.serif.display,
+    fontSize: 32,
+    fontWeight: '300',
+    letterSpacing: -0.015,
+    lineHeight: 1.1,
+    color: colors.ink,
+    marginBottom: 32,
+  },
+  answerCard: {
+    padding: 30,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  buttons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  prevBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  prevBtnText: {
+    fontSize: 13,
+    color: colors.ink,
+    fontWeight: '500',
+  },
+  nextBtn: {
+    flex: 2,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  nextBtnText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '500',
+    letterSpacing: -0.005,
+  },
+});
+
+const timeInputStyles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  input: {
+    fontFamily: fonts.serif.display,
+    fontSize: 64,
+    fontWeight: '300',
+    letterSpacing: -0.03,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+});
+
+const numInputStyles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  valueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  btn: {
+    fontSize: 32,
+    color: colors.primary,
+    fontWeight: '300',
+    paddingHorizontal: 12,
+  },
+  value: {
+    alignItems: 'center',
+  },
+  number: {
+    fontFamily: fonts.serif.display,
+    fontSize: 72,
+    fontWeight: '300',
+    letterSpacing: -0.04,
+    color: colors.primary,
+  },
+  unit: {
+    fontFamily: fonts.serif.display,
+    fontSize: 26,
+    color: colors.textMuted,
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+});
+
+const scaleInputStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 14,
+  },
+  scale: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  chip: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  chipText: {
+    fontFamily: fonts.serif.display,
+    fontSize: 20,
+    fontWeight: '400',
+    letterSpacing: -0.01,
+    color: colors.ink,
+  },
+  chipTextActive: {
+    color: '#fff',
+  },
+  labels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 260,
+  },
+  label: {
+    fontSize: 11,
+    color: colors.textMuted,
+  },
 });

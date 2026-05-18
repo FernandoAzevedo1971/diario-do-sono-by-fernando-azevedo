@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "installCommand": "npm install",
+  "installCommand": "npm install --legacy-peer-deps",
   "buildCommand": "npm run core:build && npm run mobile:export:web",
   "outputDirectory": "apps/mobile/dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],

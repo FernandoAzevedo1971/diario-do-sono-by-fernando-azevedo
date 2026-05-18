@@ -11,13 +11,40 @@ export interface IsiResult {
 }
 
 export const ISI_ITEMS = [
-  'Dificuldade para iniciar o sono',
-  'Dificuldade para manter o sono',
-  'Acordar mais cedo do que gostaria',
-  'Satisfação com o padrão atual de sono',
-  'Quanto seu problema de sono interfere nas atividades do dia a dia',
-  'Quanto outras pessoas percebem prejuízo em sua qualidade de vida relacionado ao sono',
-  'Quanto você está preocupado(a) ou incomodado(a) com seu problema de sono',
+  {
+    prompt: 'Dificuldade para iniciar o sono',
+    options: ['Nenhuma', 'Leve', 'Moderada', 'Grave', 'Muito grave'],
+  },
+  {
+    prompt: 'Dificuldade para manter o sono',
+    options: ['Nenhuma', 'Leve', 'Moderada', 'Grave', 'Muito grave'],
+  },
+  {
+    prompt: 'Acordar mais cedo do que gostaria',
+    options: ['Nenhuma', 'Leve', 'Moderada', 'Grave', 'Muito grave'],
+  },
+  {
+    prompt: 'Satisfação com o padrão atual de sono',
+    options: ['Muito satisfeito', 'Satisfeito', 'Indiferente', 'Insatisfeito', 'Muito insatisfeito'],
+  },
+  {
+    prompt: 'Quanto seu problema de sono interfere nas atividades do dia a dia',
+    options: ['Não interfere', 'Interfere um pouco', 'Interfere de algum modo', 'Interfere muito', 'Interfere extremamente'],
+  },
+  {
+    prompt: 'Quanto outras pessoas percebem prejuízo em sua qualidade de vida relacionado ao sono',
+    options: ['Não percebem', 'Percebem um pouco', 'Percebem de algum modo', 'Percebem muito', 'Percebem extremamente'],
+  },
+  {
+    prompt: 'Quanto você está preocupado(a) ou incomodado(a) com seu problema de sono',
+    options: [
+      'Não estou preocupado',
+      'Um pouco preocupado',
+      'De algum modo preocupado',
+      'Muito preocupado',
+      'Extremamente preocupado',
+    ],
+  },
 ] as const;
 
 export function calculateIsiScore(values: number[]): IsiResult {

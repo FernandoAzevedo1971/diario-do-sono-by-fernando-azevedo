@@ -1,6 +1,6 @@
 ﻿import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateIsiScore, calculateSleepDiary, calculateSleepDiaryAverages, formatDuration } from '../src/index.js';
+import { ISI_ITEMS, calculateIsiScore, calculateSleepDiary, calculateSleepDiaryAverages, formatDuration } from '../src/index.js';
 
 test('calculates sleep diary metrics with overnight interval', () => {
   const result = calculateSleepDiary({
@@ -49,6 +49,18 @@ test('calculates ISI score and interpretation', () => {
   assert.equal(result.isValid, true);
   assert.equal(result.score, 14);
   assert.equal(result.severity, 'subclinical');
+});
+
+test('defines ISI answer labels per item', () => {
+  assert.deepEqual(ISI_ITEMS[0].options, ['Nenhuma', 'Leve', 'Moderada', 'Grave', 'Muito grave']);
+  assert.deepEqual(ISI_ITEMS[3].options, ['Muito satisfeito', 'Satisfeito', 'Indiferente', 'Insatisfeito', 'Muito insatisfeito']);
+  assert.deepEqual(ISI_ITEMS[6].options, [
+    'Não estou preocupado',
+    'Um pouco preocupado',
+    'De algum modo preocupado',
+    'Muito preocupado',
+    'Extremamente preocupado',
+  ]);
 });
 
 test('calculates sleep diary averages', () => {

@@ -7,14 +7,6 @@ import { OptionCard } from '../components/OptionCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 
-const ANSWER_OPTIONS = [
-  ['0', '0'],
-  ['1', '1'],
-  ['2', '2'],
-  ['3', '3'],
-  ['4', '4'],
-] as const;
-
 export function IsiPromptScreen({ onComplete }: { onComplete: (score: number, interpretation: string) => void | Promise<void> }) {
   const [answers, setAnswers] = useState<Array<number | null>>(Array(ISI_ITEMS.length).fill(null));
   const [isSaving, setIsSaving] = useState(false);
@@ -41,17 +33,17 @@ export function IsiPromptScreen({ onComplete }: { onComplete: (score: number, in
         <Text style={styles.title}>Indice de Gravidade de Insonia</Text>
         <Text style={styles.subtitle}>Responda todos os itens para iniciar o primeiro preenchimento do diario.</Text>
         {ISI_ITEMS.map((item, index) => (
-          <GlassCard key={item} style={styles.card}>
-            <Text style={styles.question}>{index + 1}. {item}</Text>
+          <GlassCard key={item.prompt} style={styles.card}>
+            <Text style={styles.question}>{index + 1}. {item.prompt}</Text>
             <View style={styles.scaleRow}>
-              {ANSWER_OPTIONS.map(([value, label]) => (
+              {item.options.map((label, value) => (
                 <OptionCard
                   key={value}
-                  label={label}
-                  selected={answers[index] === Number(value)}
+                  label={`${value} - ${label}`}
+                  selected={answers[index] === value}
                   onPress={() => {
                     const nextAnswers = [...answers];
-                    nextAnswers[index] = Number(value);
+                    nextAnswers[index] = value;
                     setAnswers(nextAnswers);
                   }}
                 />

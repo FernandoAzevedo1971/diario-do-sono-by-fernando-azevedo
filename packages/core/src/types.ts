@@ -34,6 +34,8 @@ export interface SleepDiaryInput {
     dose?: string | null;
     time?: string | null;
   } | null;
+  nightObservations?: string | null;
+  dayObservations?: string | null;
 }
 
 export interface SleepDiaryMetrics {

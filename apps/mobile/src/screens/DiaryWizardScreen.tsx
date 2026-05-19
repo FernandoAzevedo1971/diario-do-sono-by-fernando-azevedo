@@ -41,6 +41,8 @@ function buildInitialInput(initialDate?: string): SleepDiaryInput {
   },
   daytimeFeeling: null,
   sleepMedication: { used: false, name: null, dose: null, time: null },
+  nightObservations: null,
+  dayObservations: null,
   };
 }
 
@@ -224,8 +226,33 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
       ),
     },
     {
-      title: 'Como se sentiu durante o dia?',
+      title: 'Como se sentiu durante o dia de ontem?',
       content: <ChoiceGroup value={input.daytimeFeeling ?? ''} onChange={(value) => setInput({ ...input, daytimeFeeling: value as DailyFeeling })} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />,
+    },
+    {
+      title: 'Observações (opcional)',
+      content: (
+        <View style={styles.optionalGroup}>
+          <Text style={styles.fieldLabel}>Sobre a noite</Text>
+          <TextInput
+            style={styles.textArea}
+            multiline
+            placeholder="Ex: acordei com barulho, sonhos intensos..."
+            placeholderTextColor={colors.textMuted}
+            value={input.nightObservations ?? ''}
+            onChangeText={(value) => setInput({ ...input, nightObservations: value || null })}
+          />
+          <Text style={styles.fieldLabel}>Sobre o dia anterior</Text>
+          <TextInput
+            style={styles.textArea}
+            multiline
+            placeholder="Ex: estresse no trabalho, viagem longa..."
+            placeholderTextColor={colors.textMuted}
+            value={input.dayObservations ?? ''}
+            onChangeText={(value) => setInput({ ...input, dayObservations: value || null })}
+          />
+        </View>
+      ),
     },
   ];
 

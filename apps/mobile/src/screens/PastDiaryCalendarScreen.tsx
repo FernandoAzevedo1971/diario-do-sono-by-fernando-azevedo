@@ -12,7 +12,7 @@ const WEEKDAYS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 function buildDays(): string[] {
   const days: string[] = [];
   const today = new Date();
-  for (let i = 1; i <= 14; i++) {
+  for (let i = 1; i <= 3; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     days.push(d.toISOString().slice(0, 10));
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     gap: CELL_GAP,
   },
   cell: {
-    width: `${(100 - CELL_GAP * 6 / 7) / 7}%` as any,
+    width: `${(100 - CELL_GAP * 2 / 3) / 3}%` as any,
     aspectRatio: 0.85,
     borderRadius: 12,
     alignItems: 'center',

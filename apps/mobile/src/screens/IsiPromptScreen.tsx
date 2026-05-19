@@ -32,8 +32,8 @@ export function IsiPromptScreen({ onComplete, onBack }: { onComplete: (score: nu
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content}>
         {onBack ? <BackArrow onPress={onBack} /> : null}
-        <Text style={styles.title}>Indice de Gravidade de Insonia</Text>
-        <Text style={styles.subtitle}>Responda todos os itens para iniciar o primeiro preenchimento do diario.</Text>
+        <Text style={styles.title}>Índice de Gravidade de Insônia (IGI)</Text>
+        <Text style={styles.subtitle}>Avalie a gravidade dos seus problemas de sono nas <Text style={styles.subtitleBold}>últimas duas semanas</Text>. Escolha a opção que melhor descreve cada situação.</Text>
         {ISI_ITEMS.map((item, index) => (
           <GlassCard key={item.prompt} style={styles.card}>
             <Text style={styles.question}>{index + 1}. {item.prompt}</Text>
@@ -75,4 +75,5 @@ const styles = StyleSheet.create({
   resultCard: { gap: spacing.xs },
   resultScore: { color: colors.cyan, fontSize: 15, fontWeight: '900' },
   resultText: { color: colors.text, fontSize: 13, lineHeight: 18 },
+  subtitleBold: { fontWeight: '800', color: colors.text },
 });

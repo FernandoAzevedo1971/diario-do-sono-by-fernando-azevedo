@@ -12,37 +12,37 @@ export interface IsiResult {
 
 export const ISI_ITEMS = [
   {
-    prompt: 'Dificuldade para iniciar o sono',
+    prompt: 'Dificuldade para INICIAR o sono (dificuldade para adormecer)',
     options: ['Nenhuma', 'Leve', 'Moderada', 'Grave', 'Muito grave'],
   },
   {
-    prompt: 'Dificuldade para manter o sono',
+    prompt: 'Dificuldade para MANTER o sono (acordar durante a noite e ter dificuldade para adormecer novamente)',
     options: ['Nenhuma', 'Leve', 'Moderada', 'Grave', 'Muito grave'],
   },
   {
-    prompt: 'Acordar mais cedo do que gostaria',
+    prompt: 'Problema de ACORDAR muito cedo (mais cedo do que desejado e dificuldade para voltar a dormir)',
     options: ['Nenhuma', 'Leve', 'Moderada', 'Grave', 'Muito grave'],
   },
   {
-    prompt: 'Satisfação com o padrão atual de sono',
-    options: ['Muito satisfeito', 'Satisfeito', 'Indiferente', 'Insatisfeito', 'Muito insatisfeito'],
+    prompt: 'SATISFAÇÃO com o seu padrão de sono atual',
+    options: ['Muito satisfeito(a)', 'Satisfeito(a)', 'Neutro(a)', 'Insatisfeito(a)', 'Muito insatisfeito(a)'],
   },
   {
-    prompt: 'Quanto seu problema de sono interfere nas atividades do dia a dia',
-    options: ['Não interfere', 'Interfere um pouco', 'Interfere de algum modo', 'Interfere muito', 'Interfere extremamente'],
+    prompt: 'Em que medida o seu problema de sono INTERFERE no seu funcionamento diário? (ex.: cansaço, humor, desempenho no trabalho, concentração, memória)',
+    options: ['Não interfere', 'Interfere um pouco', 'Interfere moderadamente', 'Interfere muito', 'Interfere extremamente'],
   },
   {
-    prompt: 'Quanto outras pessoas percebem prejuízo em sua qualidade de vida relacionado ao sono',
-    options: ['Não percebem', 'Percebem um pouco', 'Percebem de algum modo', 'Percebem muito', 'Percebem extremamente'],
+    prompt: 'Em que medida o seu problema de sono é PERCEBIDO PELOS OUTROS como prejudicial à sua qualidade de vida? (ex.: família, amigos, colegas)',
+    options: ['De forma alguma', 'Um pouco', 'Moderadamente', 'Muito', 'Extremamente'],
   },
   {
-    prompt: 'Quanto você está preocupado(a) ou incomodado(a) com seu problema de sono',
+    prompt: 'O quanto você está PREOCUPADO(A) com o seu atual problema de sono?',
     options: [
-      'Não estou preocupado',
-      'Um pouco preocupado',
-      'De algum modo preocupado',
-      'Muito preocupado',
-      'Extremamente preocupado',
+      'Nada preocupado(a)',
+      'Um pouco preocupado(a)',
+      'Moderadamente preocupado(a)',
+      'Muito preocupado(a)',
+      'Extremamente preocupado(a)',
     ],
   },
 ] as const;

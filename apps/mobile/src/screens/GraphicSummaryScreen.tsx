@@ -178,9 +178,7 @@ function TrendChart({ entries, title, getValue, formatValue, barColor, reference
             return (
               <View key={entry.id} style={chartStyles.barCol}>
                 <Text style={chartStyles.valLabel}>{formatValue(v)}</Text>
-                <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                  <View style={[chartStyles.bar, { height: barH, backgroundColor: barColor }]} />
-                </View>
+                <View style={[chartStyles.bar, { height: barH, backgroundColor: barColor }]} />
                 <Text style={chartStyles.dateLabel}>{shortDate(entry.input.entryDate)}</Text>
               </View>
             );
@@ -197,7 +195,7 @@ const chartStyles = StyleSheet.create({
   chartArea: { position: 'relative' },
   barsRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'stretch',
     gap: 3,
     position: 'absolute',
     left: 0,
@@ -205,7 +203,13 @@ const chartStyles = StyleSheet.create({
     top: 0,
     bottom: 18,
   },
-  barCol: { flex: 1, alignItems: 'center', gap: 1 },
+  barCol: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 2,
+  },
   valLabel: { color: colors.textMuted, fontSize: 7, textAlign: 'center' },
   bar: { width: '100%', borderRadius: 2, minHeight: 3 },
   dateLabel: {

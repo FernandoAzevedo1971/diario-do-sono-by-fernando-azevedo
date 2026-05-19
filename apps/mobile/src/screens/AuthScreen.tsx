@@ -85,11 +85,11 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: Authen
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', gap: spacing.md },
-  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
-  subtitle: { color: colors.textMuted, fontSize: 16, lineHeight: 23 },
-  card: { gap: spacing.md },
-  input: { minHeight: 54, borderRadius: 16, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.06)' },
+  container: { flex: 1, justifyContent: 'center', gap: spacing.sm },
+  title: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  subtitle: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+  card: { gap: spacing.sm },
+  input: { minHeight: 42, borderRadius: 10, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.06)' },
   error: { color: colors.sunrise, lineHeight: 20 },
   success: { color: '#4ade80', lineHeight: 20 },
   notice: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },

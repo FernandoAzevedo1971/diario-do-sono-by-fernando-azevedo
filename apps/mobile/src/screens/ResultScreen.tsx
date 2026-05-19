@@ -103,13 +103,13 @@ export function ResultScreen({ entry, entries, onFinish, onAddAnother, onSummary
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingBottom: spacing.xl },
-  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
-  timelineCard: { paddingHorizontal: spacing.sm },
-  hero: { alignItems: 'center', gap: spacing.sm, backgroundColor: 'rgba(109,93,246,0.22)' },
-  heroLabel: { color: colors.textMuted, fontSize: 16 },
-  heroValue: { color: colors.text, fontSize: 58, fontWeight: '900' },
-  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  card: { gap: spacing.md },
-  cardTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  content: { gap: spacing.md, paddingBottom: spacing.lg },
+  title: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  timelineCard: { paddingHorizontal: spacing.xs },
+  hero: { alignItems: 'center', gap: spacing.xs, backgroundColor: 'rgba(109,93,246,0.22)' },
+  heroLabel: { color: colors.textMuted, fontSize: 13 },
+  heroValue: { color: colors.text, fontSize: 38, fontWeight: '900' },
+  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  card: { gap: spacing.sm },
+  cardTitle: { color: colors.text, fontSize: 13, fontWeight: '900' },
 });

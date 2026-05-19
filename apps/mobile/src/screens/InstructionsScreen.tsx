@@ -22,8 +22,8 @@ export function InstructionsScreen({ onContinue }: { onContinue: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  content: { flexGrow: 1, justifyContent: 'center', gap: spacing.lg },
-  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
-  card: { gap: spacing.lg },
-  text: { color: colors.text, fontSize: 17, lineHeight: 27 },
+  content: { flexGrow: 1, justifyContent: 'center', gap: spacing.md },
+  title: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  card: { gap: spacing.md },
+  text: { color: colors.text, fontSize: 14, lineHeight: 21 },
 });

@@ -64,13 +64,13 @@ export function IsiPromptScreen({ onComplete }: { onComplete: (score: number, in
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: spacing.xl },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900' },
-  subtitle: { color: colors.textMuted, fontSize: 16, lineHeight: 23 },
-  card: { gap: spacing.md },
-  question: { color: colors.text, fontSize: 17, fontWeight: '800', lineHeight: 24 },
-  scaleRow: { gap: spacing.sm },
+  content: { gap: spacing.sm, paddingBottom: spacing.lg },
+  title: { color: colors.text, fontSize: 20, fontWeight: '900' },
+  subtitle: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+  card: { gap: spacing.sm },
+  question: { color: colors.text, fontSize: 14, fontWeight: '800', lineHeight: 20 },
+  scaleRow: { gap: spacing.xs },
   resultCard: { gap: spacing.xs },
-  resultScore: { color: colors.cyan, fontSize: 18, fontWeight: '900' },
-  resultText: { color: colors.text, fontSize: 16, lineHeight: 23 },
+  resultScore: { color: colors.cyan, fontSize: 15, fontWeight: '900' },
+  resultText: { color: colors.text, fontSize: 13, lineHeight: 18 },
 });

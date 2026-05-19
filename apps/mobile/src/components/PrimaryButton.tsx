@@ -18,11 +18,11 @@ export function PrimaryButton({ label, variant = 'primary', style, ...props }: P
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 54,
+    minHeight: 42,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
   },
   primary: {
     backgroundColor: colors.primary,
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
   },
   disabledLabel: {

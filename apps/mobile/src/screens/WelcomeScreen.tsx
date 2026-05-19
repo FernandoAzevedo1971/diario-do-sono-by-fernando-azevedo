@@ -25,11 +25,11 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', gap: spacing.lg },
-  moon: { color: colors.sunrise, fontSize: 70, textAlign: 'center' },
-  title: { color: colors.text, fontSize: 32, fontWeight: '900', textAlign: 'center', letterSpacing: 1.5 },
-  subtitle: { color: colors.textMuted, fontSize: 17, textAlign: 'center', lineHeight: 24 },
-  card: { gap: spacing.md },
-  cardTitle: { color: colors.text, fontSize: 22, fontWeight: '800' },
-  cardText: { color: colors.textMuted, fontSize: 16, lineHeight: 23 },
+  container: { flex: 1, justifyContent: 'center', gap: spacing.md },
+  moon: { color: colors.sunrise, fontSize: 50, textAlign: 'center' },
+  title: { color: colors.text, fontSize: 24, fontWeight: '900', textAlign: 'center', letterSpacing: 1.5 },
+  subtitle: { color: colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  card: { gap: spacing.sm },
+  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  cardText: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
 });

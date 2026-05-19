@@ -299,11 +299,11 @@ function ChoiceGroup({ value, onChange, options }: { value: string; onChange: (v
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingBottom: spacing.xl },
-  progress: { color: colors.cyan, fontSize: 14, fontWeight: '800' },
-  title: { color: colors.text, fontSize: 27, fontWeight: '900', lineHeight: 34 },
-  card: { gap: spacing.md },
-  timelineCard: { paddingHorizontal: spacing.xs },
+  content: { gap: spacing.md, paddingBottom: spacing.lg },
+  progress: { color: colors.cyan, fontSize: 11, fontWeight: '800' },
+  title: { color: colors.text, fontSize: 20, fontWeight: '900', lineHeight: 26 },
+  card: { gap: spacing.sm },
+  timelineCard: { paddingHorizontal: 2 },
   choiceGroup: { gap: spacing.md },
   optionalGroup: { gap: spacing.md },
   fieldLabel: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },

@@ -179,7 +179,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
             onChange={(value) => setInput({
               ...input,
               sleepMedication: value === 'yes'
-                ? { used: true, name: input.sleepMedication?.name ?? '', dose: input.sleepMedication?.dose ?? '', time: input.sleepMedication?.time ?? '22:00' }
+                ? { used: true, name: input.sleepMedication?.name ?? '', dose: input.sleepMedication?.dose ?? '', time: input.sleepMedication?.time ?? input.bedTime }
                 : { used: false, name: null, dose: null, time: null },
             })}
             options={[['no', 'NÃO'], ['yes', 'SIM']]}
@@ -212,7 +212,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
               />
               <Text style={styles.fieldLabel}>Horário que tomou</Text>
               <TimeInput
-                value={input.sleepMedication.time ?? '22:00'}
+                value={input.sleepMedication.time ?? input.bedTime}
                 onChange={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, time: value } })}
                 rangeStart="18:00"
                 rangeEnd="02:00"
@@ -223,7 +223,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
       ),
     },
     {
-      title: 'Como se sentiu durante o dia?',
+      title: 'Como se sentiu durante o dia de ontem?',
       content: <ChoiceGroup value={input.daytimeFeeling ?? ''} onChange={(value) => setInput({ ...input, daytimeFeeling: value as DailyFeeling })} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />,
     },
   ];

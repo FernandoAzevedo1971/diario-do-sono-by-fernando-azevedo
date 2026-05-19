@@ -14,8 +14,9 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-const initialInput: SleepDiaryInput = {
-  entryDate: todayIsoDate(),
+function buildInitialInput(initialDate?: string): SleepDiaryInput {
+  return {
+  entryDate: initialDate ?? todayIsoDate(),
   bedTime: '22:30',
   sleepLatencyMinutes: 20,
   nightAwakeningsCount: 1,
@@ -39,16 +40,18 @@ const initialInput: SleepDiaryInput = {
   },
   daytimeFeeling: null,
   sleepMedication: { used: false, name: null, dose: null, time: null },
-};
+  };
+}
 
-export function DiaryWizardScreen({ editingEntry, previousEntry, onCancel, onSave }: {
+export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, onCancel, onSave }: {
   editingEntry?: SleepDiaryEntry | null;
   previousEntry?: SleepDiaryEntry | null;
+  initialDate?: string;
   onCancel: () => void;
   onSave: (entry: SleepDiaryEntry) => void;
 }) {
   const [step, setStep] = useState(0);
-  const [input, setInput] = useState<SleepDiaryInput>(editingEntry?.input ?? initialInput);
+  const [input, setInput] = useState<SleepDiaryInput>(editingEntry?.input ?? buildInitialInput(initialDate));
   const result = useMemo(() => calculateSleepDiary(input), [input]);
 
   const maxPerceivedMinutes = minutesBetweenClockTimes(input.bedTime, input.finalWakeTime);

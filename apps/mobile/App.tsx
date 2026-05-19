@@ -15,9 +15,10 @@ import { ResultScreen } from './src/screens/ResultScreen';
 import { GraphicSummaryScreen } from './src/screens/GraphicSummaryScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { SendToDoctorScreen } from './src/screens/SendToDoctorScreen';
+import { PastDiaryCalendarScreen } from './src/screens/PastDiaryCalendarScreen';
 import type { AuthenticatedUser, PatientProfile, SleepDiaryEntry } from './src/types';
 
-type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result' | 'summary' | 'report';
+type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result' | 'summary' | 'report' | 'past-calendar';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -49,6 +50,7 @@ export default function App() {
   const [entries, setEntries] = useState<SleepDiaryEntry[]>([]);
   const [editingEntry, setEditingEntry] = useState<SleepDiaryEntry | null>(null);
   const [lastSavedEntry, setLastSavedEntry] = useState<SleepDiaryEntry | null>(null);
+  const [pastEntryDate, setPastEntryDate] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -163,6 +165,7 @@ export default function App() {
     setEntries(nextEntries);
     setLastSavedEntry(entry);
     setEditingEntry(null);
+    setPastEntryDate(null);
     await cancelDailyDiaryReminder();
     setRoute('result');
   }
@@ -189,6 +192,23 @@ export default function App() {
             setRoute('diary');
           }}
           onSummary={() => setRoute('summary')}
+          onPastEntry={() => setRoute('past-calendar')}
+        />
+      )}
+      {route === 'past-calendar' && (
+        <PastDiaryCalendarScreen
+          entries={entries}
+          onNewEntry={(date) => {
+            setPastEntryDate(date);
+            setEditingEntry(null);
+            setRoute('diary');
+          }}
+          onEditEntry={(entry) => {
+            setEditingEntry(entry);
+            setPastEntryDate(null);
+            setRoute('diary');
+          }}
+          onBack={() => setRoute('today')}
         />
       )}
       {route === 'summary' && (
@@ -201,7 +221,8 @@ export default function App() {
         <DiaryWizardScreen
           editingEntry={editingEntry}
           previousEntry={entries.length > 0 ? entries[0] : null}
-          onCancel={() => setRoute('today')}
+          initialDate={pastEntryDate ?? undefined}
+          onCancel={() => setRoute(pastEntryDate ? 'past-calendar' : 'today')}
           onSave={handleSaveEntry}
         />
       )}

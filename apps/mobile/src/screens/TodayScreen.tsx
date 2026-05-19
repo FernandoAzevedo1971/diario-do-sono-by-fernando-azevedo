@@ -26,9 +26,7 @@ export function TodayScreen({ profile, entries, onNewEntry, onEditEntry, onSumma
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.greeting}>Olá, {profile.name}</Text>
-        <Text style={styles.title}>
-          Como foi sua noite<Text style={styles.titleAccent}>?</Text>
-        </Text>
+        <Text style={styles.title}>Como foi sua noite?</Text>
         <GlassCard style={styles.card}>
           {todayEntry ? (
             <>
@@ -118,7 +116,6 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xl },
   greeting: { color: colors.textMuted, fontSize: 15 },
   title: { color: colors.text, fontSize: 32, fontWeight: '900', lineHeight: 38 },
-  titleAccent: { color: colors.cyan },
   card: { gap: spacing.sm },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   cardText: { color: colors.textMuted, fontSize: 15, lineHeight: 21 },

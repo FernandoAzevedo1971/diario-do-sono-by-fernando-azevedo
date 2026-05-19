@@ -202,7 +202,7 @@ export default function App() {
         />
       )}
       {route === 'auth' && <AuthScreen onAuthenticated={handleAuthenticated} onBack={() => setRoute('welcome')} />}
-      {route === 'profile' && <ProfileScreen initialEmail={user?.email ?? ''} onSave={handleSaveProfile} onBack={user ? undefined : () => setRoute('auth')} />}
+      {route === 'profile' && <ProfileScreen initialEmail={user?.email ?? ''} onSave={handleSaveProfile} onBack={() => setRoute('auth')} />}
       {route === 'isiPrompt' && <IsiPromptScreen onComplete={handleCompleteInitialIsi} onBack={() => setRoute('profile')} />}
       {route === 'instructions' && <InstructionsScreen onContinue={() => setRoute('today')} onBack={() => setRoute('isiPrompt')} />}
       {route === 'today' && profile && (

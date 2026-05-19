@@ -314,14 +314,14 @@ const styles = StyleSheet.create({
 
   title: {
     color: colors.text,
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '900',
     marginTop: spacing.xs,
   },
   subtitle: {
     color: colors.textMuted,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 18,
   },
 
   card: {
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     flex: 1,
-    minHeight: 72,
+    minHeight: 56,
     backgroundColor: 'rgba(109,93,246,0.18)',
     borderRadius: radius.md,
     borderWidth: 1,
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   shareIcon: {
-    fontSize: 26,
+    fontSize: 20,
   },
   shareButtonLabel: {
     color: colors.text,
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   reportTypeIcon: {
-    fontSize: 22,
+    fontSize: 18,
   },
   reportTypeInfo: {
     flex: 1,

@@ -12,6 +12,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderWidth: 1,
     borderRadius: radius.lg,
-    padding: spacing.lg,
+    padding: spacing.md,
   },
 });

@@ -257,7 +257,7 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 // ─── styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
+  container: { gap: spacing.sm, paddingTop: spacing.sm, paddingBottom: spacing.xs },
 
   track: {
     height: 36,

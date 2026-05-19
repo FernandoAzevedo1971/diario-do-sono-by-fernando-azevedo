@@ -15,15 +15,15 @@ export const colors = {
 };
 
 export const spacing = {
-  xs: 6,
-  sm: 10,
-  md: 16,
-  lg: 24,
-  xl: 32,
+  xs: 4,
+  sm: 7,
+  md: 11,
+  lg: 16,
+  xl: 22,
 };
 
 export const radius = {
-  md: 16,
-  lg: 24,
-  xl: 32,
+  md: 10,
+  lg: 14,
+  xl: 20,
 };

@@ -128,15 +128,15 @@ function getGenderLabel(gender: PatientProfile['gender']): string {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: spacing.xl, gap: spacing.md },
-  title: { color: colors.text, fontSize: 30, fontWeight: '900' },
-  subtitle: { color: colors.textMuted, fontSize: 16, lineHeight: 23 },
-  card: { gap: spacing.md },
-  label: { color: colors.text, fontWeight: '800', marginTop: spacing.sm },
-  input: { minHeight: 54, borderRadius: 16, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.06)' },
-  selectGroup: { gap: spacing.sm },
-  selectBox: { minHeight: 54, borderRadius: 16, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.06)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  selectText: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  selectArrow: { color: colors.cyan, fontSize: 14, fontWeight: '900' },
-  selectOptions: { gap: spacing.sm },
+  content: { paddingBottom: spacing.lg, gap: spacing.sm },
+  title: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  subtitle: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+  card: { gap: spacing.sm },
+  label: { color: colors.text, fontWeight: '800', fontSize: 13, marginTop: spacing.xs },
+  input: { minHeight: 42, borderRadius: 10, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.06)', fontSize: 14 },
+  selectGroup: { gap: spacing.xs },
+  selectBox: { minHeight: 42, borderRadius: 10, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.06)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  selectText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  selectArrow: { color: colors.cyan, fontSize: 12, fontWeight: '900' },
+  selectOptions: { gap: spacing.xs },
 });

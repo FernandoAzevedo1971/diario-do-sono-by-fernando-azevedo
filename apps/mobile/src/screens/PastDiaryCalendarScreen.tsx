@@ -106,13 +106,13 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 30,
+    fontSize: 22,
     fontWeight: '900',
   },
   subtitle: {
     color: colors.textMuted,
-    fontSize: 16,
-    marginTop: -spacing.md,
+    fontSize: 13,
+    marginTop: -spacing.sm,
   },
   card: {
     gap: spacing.md,
@@ -144,18 +144,18 @@ const styles = StyleSheet.create({
   },
   cellWeekday: {
     color: colors.textMuted,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '600',
   },
   cellDate: {
     color: colors.text,
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '800',
   },
   cellIcon: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '800',
-    marginTop: 2,
+    marginTop: 1,
   },
   cellTextFilled: {
     color: colors.success,

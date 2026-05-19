@@ -686,9 +686,14 @@ export async function generateSleepDiaryPdf(
   drawFooter(doc, 1);
 
   if (reportType === 'consolidated') {
-    // Page 2 — metric trend charts only
+    // Page 2 — timeline
     doc.addPage();
-    drawChartsPage(doc, chronological, 2);
+    const timelineEntries = chronological.slice(-14);
+    drawTimelinePage(doc, timelineEntries, 2);
+
+    // Page 3 — metric trend charts
+    doc.addPage();
+    drawChartsPage(doc, chronological, 3);
   } else {
     // Page 2 — timeline (up to 14 most recent)
     doc.addPage();

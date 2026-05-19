@@ -706,3 +706,20 @@ export async function generateSleepDiaryPdf(
 
   return (doc as unknown as { output(type: string): Blob }).output('blob');
 }
+
+/**
+ * Generates a PDF using expo-print (HTML → PDF).
+ * Works on iOS, Android, and returns a local file URI.
+ * Use this on native; use generateSleepDiaryPdf on web.
+ */
+export async function generateSleepDiaryPdfNative(
+  profile: PatientProfile,
+  entries: SleepDiaryEntry[],
+  reportType: ReportType = 'detailed',
+): Promise<string> {
+  const { buildReportHtml } = await import('./reportHtml');
+  const Print = await import('expo-print');
+  const html = buildReportHtml(profile, entries, reportType);
+  const { uri } = await Print.printToFileAsync({ html, base64: false });
+  return uri;
+}

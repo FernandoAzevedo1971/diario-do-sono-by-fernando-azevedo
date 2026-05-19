@@ -44,11 +44,9 @@ export function TodayScreen({ profile, entries, onNewEntry, onEditEntry, onSumma
         </GlassCard>
 
         {entries.length > 0 ? (
-          <>
-            <PrimaryButton label="Resumo Gráfico" onPress={onSummary} />
-            <PrimaryButton label="Enviar ao Médico" onPress={onReport} />
-          </>
+          <PrimaryButton label="Resumo Gráfico" onPress={onSummary} />
         ) : null}
+        <PrimaryButton label="Enviar ao Médico" onPress={onReport} />
 
         {latestEntry ? (
           <>

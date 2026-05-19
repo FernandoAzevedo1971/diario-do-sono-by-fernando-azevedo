@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,7 +11,7 @@ import {
 import { AppBackground } from '../components/AppBackground';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
-import { generateSleepDiaryPdf, type ReportType } from '../services/pdfService';
+import { generateSleepDiaryPdf, generateSleepDiaryPdfNative, type ReportType } from '../services/pdfService';
 import { colors, radius, spacing } from '../theme/tokens';
 import type { PatientProfile, SleepDiaryEntry } from '../types';
 
@@ -57,12 +58,25 @@ export function SendToDoctorScreen({ profile, entries, onBack }: SendToDoctorScr
     setIsGenerating(true);
     try {
       const filtered = getFilteredEntries(entries, selectedPeriod);
-      const blob = await generateSleepDiaryPdf(profile, filtered, selectedReportType);
       const fileName = `diario-sono-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      if (Platform.OS !== 'web') {
+        // ── Native (iOS / Android) ────────────────────────────────────────────
+        const uri = await generateSleepDiaryPdfNative(profile, filtered, selectedReportType);
+        const Sharing = await import('expo-sharing');
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Enviar relatório ao médico',
+          UTI: 'com.adobe.pdf',
+        });
+        return;
+      }
+
+      // ── Web (PWA) ────────────────────────────────────────────────────────────
+      const blob = await generateSleepDiaryPdf(profile, filtered, selectedReportType);
       const file = new File([blob], fileName, { type: 'application/pdf' });
 
       if (via === 'download') {
-        // Only runs in browser — safe because this screen is PWA-only
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -82,7 +96,7 @@ export function SendToDoctorScreen({ profile, entries, onBack }: SendToDoctorScr
               : 'Segue em anexo meu relatório do Diário do Sono.',
         });
       } else {
-        // Web Share API unavailable — fall back to download
+        // Web Share API indisponível — baixar diretamente
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -92,29 +106,14 @@ export function SendToDoctorScreen({ profile, entries, onBack }: SendToDoctorScr
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== 'AbortError') {
-        setShareError('Não foi possível compartilhar. Tente baixar o PDF.');
+        setShareError('Não foi possível gerar o PDF. Tente novamente.');
       }
     } finally {
       setIsGenerating(false);
     }
   }
 
-  if (entries.length === 0) {
-    return (
-      <AppBackground>
-        <View style={styles.emptyContainer}>
-          <Pressable onPress={onBack} style={styles.backButton}>
-            <Text style={styles.backLabel}>← Voltar</Text>
-          </Pressable>
-          <Text style={styles.emptyTitle}>Nenhum registro ainda</Text>
-          <Text style={styles.emptySubtitle}>
-            Preencha o diário por pelo menos uma noite para gerar o relatório.
-          </Text>
-        </View>
-      </AppBackground>
-    );
-  }
-
+  const hasEntries = entries.length > 0;
   const filteredCount = getFilteredEntries(entries, selectedPeriod).length;
 
   return (
@@ -216,35 +215,45 @@ export function SendToDoctorScreen({ profile, entries, onBack }: SendToDoctorScr
         <GlassCard style={styles.card}>
           <Text style={styles.cardTitle}>Compartilhar via</Text>
 
-          <View style={styles.shareRow}>
-            <Pressable
-              onPress={() => handleShare('whatsapp')}
-              disabled={isGenerating}
-              style={[styles.shareButton, isGenerating && styles.shareButtonDisabled]}
-            >
-              <Text style={styles.shareIcon}>💬</Text>
-              <Text style={styles.shareButtonLabel}>WhatsApp</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => handleShare('email')}
-              disabled={isGenerating}
-              style={[styles.shareButton, isGenerating && styles.shareButtonDisabled]}
-            >
-              <Text style={styles.shareIcon}>✉</Text>
-              <Text style={styles.shareButtonLabel}>E-mail</Text>
-            </Pressable>
-          </View>
-
-          <Pressable
-            onPress={() => handleShare('download')}
-            disabled={isGenerating}
-            style={styles.downloadButton}
-          >
-            <Text style={[styles.downloadLabel, isGenerating && styles.downloadLabelDisabled]}>
-              Baixar PDF
+          {!hasEntries ? (
+            <Text style={styles.noEntriesNote}>
+              Preencha pelo menos uma noite no diário para gerar o relatório.
             </Text>
-          </Pressable>
+          ) : (
+            <>
+              <View style={styles.shareRow}>
+                <Pressable
+                  onPress={() => handleShare('whatsapp')}
+                  disabled={isGenerating}
+                  style={[styles.shareButton, isGenerating && styles.shareButtonDisabled]}
+                >
+                  <Text style={styles.shareIcon}>💬</Text>
+                  <Text style={styles.shareButtonLabel}>WhatsApp</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => handleShare('email')}
+                  disabled={isGenerating}
+                  style={[styles.shareButton, isGenerating && styles.shareButtonDisabled]}
+                >
+                  <Text style={styles.shareIcon}>✉</Text>
+                  <Text style={styles.shareButtonLabel}>E-mail</Text>
+                </Pressable>
+              </View>
+
+              {Platform.OS === 'web' ? (
+                <Pressable
+                  onPress={() => handleShare('download')}
+                  disabled={isGenerating}
+                  style={styles.downloadButton}
+                >
+                  <Text style={[styles.downloadLabel, isGenerating && styles.downloadLabelDisabled]}>
+                    Baixar PDF
+                  </Text>
+                </Pressable>
+              ) : null}
+            </>
+          )}
         </GlassCard>
 
         {/* Loading state */}
@@ -285,22 +294,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 
-  emptyContainer: {
-    flex: 1,
-    paddingTop: spacing.lg,
-    gap: spacing.md,
-  },
-  emptyTitle: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: '800',
-    marginTop: spacing.xl,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
+  noEntriesNote: {
     color: colors.textMuted,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
   },
 

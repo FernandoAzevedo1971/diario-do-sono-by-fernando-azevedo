@@ -2,6 +2,22 @@ import { calculateSleepDiaryAverages, formatDuration } from '@diario-do-sono/cor
 import type { PatientProfile, SleepDiaryEntry } from '../types';
 import type { ReportType } from './pdfService';
 
+// ─── constants ────────────────────────────────────────────────────────────────
+
+// Chart window: 18:00 → 14:00 next day (20 hours = 1200 min)
+const RANGE_START_H = 18;
+const RANGE_TOTAL_MIN = 20 * 60;
+
+// Axis ticks every 2 hours
+const AXIS_TICKS = [18, 20, 22, 0, 2, 4, 6, 8, 10, 12, 14];
+
+const SEG_COLOR = {
+  latency: '#8B7FE8',
+  sleep:   '#3ECFB0',
+  waso:    '#FF8C42',
+  inertia: '#F8C86A',
+};
+
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function dd(isoDate: string): string {
@@ -16,84 +32,130 @@ function age(birthDate: string): number {
   if (
     today.getMonth() < birth.getMonth() ||
     (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
-  ) {
-    a--;
-  }
+  ) a--;
   return a;
 }
 
 function periodLabel(entries: SleepDiaryEntry[]): string {
   if (entries.length === 0) return '—';
-  const sorted = [...entries].sort((a, b) => a.input.entryDate.localeCompare(b.input.entryDate));
-  const first = dd(sorted[0].input.entryDate);
-  const last = dd(sorted[sorted.length - 1].input.entryDate);
+  const first = dd(entries[0].input.entryDate);
+  const last  = dd(entries[entries.length - 1].input.entryDate);
   return first === last ? first : `${first} – ${last}`;
+}
+
+function clockToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function offsetFromRange(hhmm: string): number {
+  let mins = clockToMinutes(hhmm);
+  // wrap midnight
+  if (mins < RANGE_START_H * 60) mins += 24 * 60;
+  return mins - RANGE_START_H * 60;
+}
+
+function pct(minutes: number): string {
+  return `${Math.max(0, Math.min(100, (minutes / RANGE_TOTAL_MIN) * 100)).toFixed(3)}%`;
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, v));
 }
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 
 const CSS = `
-  @page { size: A4; margin: 14mm 15mm; }
+  @page { size: A4; margin: 12mm 14mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a2e; background: white; }
-  h2 { font-size: 13px; font-weight: 700; color: #1a1a2e; border-bottom: 2px solid #6D5DF6;
-       padding-bottom: 5px; margin: 20px 0 12px; }
-  .header { background: #080B1F; color: white; padding: 14px 18px; }
-  .header-title { font-size: 22px; font-weight: 900; letter-spacing: 2px; }
-  .header-sub { font-size: 10px; opacity: 0.65; letter-spacing: 1.5px; margin-top: 3px; }
-  .header-patient { margin-top: 10px; display: flex; gap: 24px; font-size: 11px; }
-  .header-patient span { opacity: 0.85; }
-  .header-patient strong { opacity: 1; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #1a1a2e; background: #fff; }
+  h2 { font-size: 12px; font-weight: 700; color: #1a1a2e; border-bottom: 2px solid #6D5DF6;
+       padding-bottom: 4px; margin: 16px 0 10px; }
 
-  .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .metric-card { background: #f0f2ff; border-radius: 8px; padding: 10px 8px; text-align: center; }
-  .metric-val { font-size: 20px; font-weight: 900; color: #6D5DF6; line-height: 1.1; }
-  .metric-lbl { font-size: 9px; color: #666; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+  /* ── Header ── */
+  .header { background: #080B1F; color: #fff; padding: 12px 16px; }
+  .hdr-title { font-size: 20px; font-weight: 900; letter-spacing: 2px; }
+  .hdr-sub { font-size: 9px; opacity: .6; letter-spacing: 1.5px; margin-top: 2px; }
+  .hdr-row { display: flex; gap: 20px; margin-top: 8px; font-size: 10px; opacity: .9; }
+  .hdr-row strong { font-weight: 700; }
 
-  .isi-box { background: #fff8e8; border: 1px solid #F8C86A; border-radius: 8px;
-             padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
-  .isi-score { font-size: 28px; font-weight: 900; color: #c8880a; }
-  .isi-label { font-size: 11px; color: #7a5500; }
-  .isi-interp { font-size: 10px; color: #9a6800; margin-top: 2px; }
+  /* ── Metrics grid ── */
+  .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .metric-card { background: #f0f2ff; border-radius: 7px; padding: 9px 7px; text-align: center; }
+  .metric-val { font-size: 18px; font-weight: 900; color: #6D5DF6; line-height: 1; }
+  .metric-lbl { font-size: 8px; color: #666; margin-top: 3px; text-transform: uppercase; letter-spacing: .4px; }
 
-  /* Charts */
-  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .chart-box { }
-  .chart-title { font-size: 10px; font-weight: 700; color: #444; margin-bottom: 5px; }
-  .bar-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
-  .bar-date { width: 28px; font-size: 8px; color: #888; text-align: right; flex-shrink: 0; }
-  .bar-track { flex: 1; height: 13px; background: #e8eaf6; border-radius: 3px; position: relative; overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 3px; }
-  .bar-ref { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,100,100,0.7); }
-  .bar-val { width: 32px; font-size: 8px; color: #555; flex-shrink: 0; }
+  /* ── ISI ── */
+  .isi-box { background: #fff8e8; border: 1px solid #F8C86A; border-radius: 7px;
+             padding: 9px 12px; display: flex; align-items: center; gap: 10px; }
+  .isi-score { font-size: 26px; font-weight: 900; color: #c8880a; }
+  .isi-label { font-size: 10px; color: #7a5500; }
+  .isi-interp { font-size: 9px; color: #9a6800; margin-top: 2px; }
 
-  /* Timeline */
-  .timeline-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-  .tl-date { width: 30px; font-size: 8px; color: #888; text-align: right; flex-shrink: 0; }
-  .tl-track { flex: 1; height: 14px; background: #e0e0e0; border-radius: 3px; overflow: hidden;
-              display: flex; }
-  .tl-seg { height: 100%; }
-  .tl-eff { width: 34px; font-size: 8px; color: #555; text-align: right; flex-shrink: 0; }
+  /* ── Actigraphy ── */
+  .act-wrap { overflow: hidden; }
+  .act-layout { display: flex; align-items: stretch; gap: 0; }
+  .act-col-date { width: 30px; flex-shrink: 0; display: flex; flex-direction: column; }
+  .act-col-track { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .act-col-stats { display: flex; flex-direction: row; }
+  .act-stat-col { width: 30px; flex-shrink: 0; display: flex; flex-direction: column; text-align: center; }
 
-  /* Table */
-  table { width: 100%; border-collapse: collapse; font-size: 9.5px; }
-  thead tr { background: #080B1F; color: white; }
-  th { padding: 5px 4px; text-align: center; font-weight: 700; }
-  td { padding: 4px; text-align: center; border-bottom: 1px solid #eee; }
-  tr:nth-child(even) td { background: #f8f9ff; }
+  /* Axis row */
+  .act-axis-spacer { height: 18px; flex-shrink: 0; } /* matches .act-date height */
+  .act-axis { position: relative; height: 18px; flex-shrink: 0; }
+  .act-tick { position: absolute; transform: translateX(-50%); font-size: 7.5px; color: #999; top: 3px; }
+  .act-tick-line { position: absolute; top: 12px; bottom: 0; width: 1px; background: #ddd; }
+  .act-stat-hdr { height: 18px; flex-shrink: 0; font-size: 7.5px; color: #999;
+                  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 2px;
+                  font-weight: 700; }
+
+  /* Date cell */
+  .act-date { font-size: 7.5px; color: #777; text-align: right; padding-right: 4px;
+              display: flex; align-items: center; justify-content: flex-end;
+              border-bottom: 1px solid #f0f0f0; }
+
+  /* Track cell */
+  .act-track { position: relative; height: 18px; background: #ececec; flex-shrink: 0;
+               border-bottom: 1px solid #f4f4f4; }
+  .act-seg { position: absolute; top: 2px; bottom: 2px; }
+  .act-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.6); }
+
+  /* Stats cells */
+  .act-stat { height: 18px; flex-shrink: 0; font-size: 7.5px; color: #444;
+              display: flex; align-items: center; justify-content: center;
+              border-bottom: 1px solid #f0f0f0; }
   .eff-hi { color: #2a9d5c; font-weight: 700; }
   .eff-lo { color: #c0392b; font-weight: 700; }
 
-  .legend { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: #555; }
-  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 8.5px; color: #555; }
+  .legend-dot { width: 12px; height: 10px; border-radius: 2px; flex-shrink: 0; }
 
-  .footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #ddd;
-            text-align: center; font-size: 9px; color: #aaa; }
+  /* Metric bar charts */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .chart-box { }
+  .chart-title { font-size: 9.5px; font-weight: 700; color: #444; margin-bottom: 5px; }
+  .bar-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+  .bar-date { width: 26px; font-size: 7.5px; color: #888; text-align: right; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 12px; background: #e8eaf6; border-radius: 3px; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .bar-ref { position: absolute; top: 0; bottom: 0; width: 1.5px; background: rgba(220,50,50,.7); }
+  .bar-val { width: 30px; font-size: 7.5px; color: #555; flex-shrink: 0; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 9px; }
+  thead tr { background: #080B1F; color: #fff; }
+  th { padding: 5px 3px; text-align: center; font-weight: 700; }
+  td { padding: 3px; text-align: center; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) td { background: #f8f9ff; }
+
   .page-break { page-break-after: always; }
+  .footer { margin-top: 16px; padding-top: 7px; border-top: 1px solid #ddd;
+            text-align: center; font-size: 8px; color: #aaa; }
 `;
 
-// ─── section builders ─────────────────────────────────────────────────────────
+// ─── metrics grid ─────────────────────────────────────────────────────────────
 
 function metricsGrid(avg: ReturnType<typeof calculateSleepDiaryAverages>): string {
   const cards = [
@@ -109,6 +171,8 @@ function metricsGrid(avg: ReturnType<typeof calculateSleepDiaryAverages>): strin
   ).join('')}</div>`;
 }
 
+// ─── ISI block ────────────────────────────────────────────────────────────────
+
 function isiBlock(profile: PatientProfile): string {
   if (!profile.initialIsiScore && profile.initialIsiScore !== 0) return '';
   return `
@@ -122,160 +186,159 @@ function isiBlock(profile: PatientProfile): string {
     </div>`;
 }
 
-// ─── bar chart section ────────────────────────────────────────────────────────
+// ─── actigraphy timeline ──────────────────────────────────────────────────────
+// Horizontal stacked bars, one per night, time axis 18:00→14:00
+
+function buildSegments(e: SleepDiaryEntry): Array<{ left: number; width: number; color: string }> {
+  const segs: Array<{ left: number; width: number; color: string }> = [];
+
+  const bedOff  = clamp(offsetFromRange(e.input.bedTime), 0, RANGE_TOTAL_MIN);
+  const wakeOff = clamp(offsetFromRange(e.input.finalWakeTime), 0, RANGE_TOTAL_MIN);
+  const outOff  = clamp(wakeOff + e.input.outOfBedLatencyMinutes, 0, RANGE_TOTAL_MIN);
+
+  const lis   = clamp(e.input.sleepLatencyMinutes, 0, wakeOff - bedOff);
+  const inertia = clamp(e.input.outOfBedLatencyMinutes, 0, RANGE_TOTAL_MIN - wakeOff);
+
+  // Latency (in bed, not sleeping)
+  if (lis > 0) segs.push({ left: bedOff, width: lis, color: SEG_COLOR.latency });
+
+  // Sleep / WASO interleaved
+  const sleepSpan = wakeOff - bedOff - lis;
+  if (sleepSpan > 0) {
+    const n = e.input.nightAwakeningsCount;
+    const capWaso = clamp(e.input.wasoMinutes, 0, sleepSpan);
+    if (n > 0 && capWaso > 0) {
+      const wasoEach = capWaso / n;
+      const netSleep = sleepSpan - capWaso;
+      const seg = netSleep / (n + 1);
+      let cur = bedOff + lis;
+      for (let i = 0; i < n; i++) {
+        if (seg > 0.5) { segs.push({ left: cur, width: seg, color: SEG_COLOR.sleep }); cur += seg; }
+        segs.push({ left: cur, width: wasoEach, color: SEG_COLOR.waso }); cur += wasoEach;
+      }
+      if (seg > 0.5) segs.push({ left: cur, width: seg, color: SEG_COLOR.sleep });
+    } else {
+      segs.push({ left: bedOff + lis, width: sleepSpan, color: SEG_COLOR.sleep });
+    }
+  }
+
+  // Inertia (awake in bed after final wake)
+  if (inertia > 0) segs.push({ left: wakeOff, width: inertia, color: SEG_COLOR.inertia });
+
+  // Time-in-bed outline (transparent, just for reference — skip, visual clutter)
+  void outOff;
+
+  return segs;
+}
+
+function actTimelineHtml(entries: SleepDiaryEntry[]): string {
+  // Grid lines at each axis tick
+  const gridLines = AXIS_TICKS.map((h) => {
+    let mins = (h - RANGE_START_H) * 60;
+    if (mins < 0) mins += 24 * 60;
+    return `<div class="act-grid" style="left:${pct(mins)}"></div>`;
+  }).join('');
+
+  // Axis tick labels
+  const ticks = AXIS_TICKS.map((h) => {
+    let mins = (h - RANGE_START_H) * 60;
+    if (mins < 0) mins += 24 * 60;
+    const label = `${String(h).padStart(2, '0')}h`;
+    return `<span class="act-tick" style="left:${pct(mins)}">${label}</span>
+            <div class="act-tick-line" style="left:${pct(mins)}"></div>`;
+  }).join('');
+
+  // Stat column headers
+  const statHeaders = ['Efic.', 'TTS', 'LIS', 'Desp.'].map(h =>
+    `<div class="act-stat-col"><div class="act-stat-hdr">${h}</div></div>`,
+  ).join('');
+
+  // Rows
+  const rows = entries.map((e) => {
+    const segs = buildSegments(e);
+    const segHtml = segs.map(s =>
+      `<div class="act-seg" style="left:${pct(s.left)};width:${pct(s.width)};background:${s.color}"></div>`,
+    ).join('');
+
+    const eff = e.metrics.sleepEfficiencyPercent;
+    const effCls = eff >= 85 ? 'eff-hi' : eff < 75 ? 'eff-lo' : '';
+
+    return `
+      <div class="act-layout">
+        <div class="act-col-date"><div class="act-date">${dd(e.input.entryDate)}</div></div>
+        <div class="act-col-track"><div class="act-track">${gridLines}${segHtml}</div></div>
+        <div class="act-col-stats">
+          <div class="act-stat-col"><div class="act-stat ${effCls}">${eff}%</div></div>
+          <div class="act-stat-col"><div class="act-stat">${formatDuration(e.metrics.ttsCalculatedMinutes)}</div></div>
+          <div class="act-stat-col"><div class="act-stat">${e.metrics.lisMinutes}'</div></div>
+          <div class="act-stat-col"><div class="act-stat">${e.input.nightAwakeningsCount}</div></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Axis header row (spans same layout)
+  const axisRow = `
+    <div class="act-layout">
+      <div class="act-col-date"><div class="act-axis-spacer"></div></div>
+      <div class="act-col-track"><div class="act-axis">${ticks}</div></div>
+      <div class="act-col-stats">${statHeaders}</div>
+    </div>`;
+
+  // Legend
+  const legend = [
+    { color: SEG_COLOR.latency, label: 'Latência (em cama, sem dormir)' },
+    { color: SEG_COLOR.sleep,   label: 'Sono' },
+    { color: SEG_COLOR.waso,    label: 'Despertar noturno (WASO)' },
+    { color: SEG_COLOR.inertia, label: 'Inércia (acordado, ainda na cama)' },
+  ].map(l =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div>${l.label}</div>`,
+  ).join('');
+
+  return `<div class="act-wrap">${axisRow}${rows}<div class="legend">${legend}</div></div>`;
+}
+
+// ─── metric trend bar charts ─────────────────────────────────────────────────
 
 interface ChartDef {
   title: string;
   color: string;
-  refValue: number | null; // reference line value (max scale basis)
-  maxValue: number;        // chart scale maximum
+  refValue: number | null;
+  maxValue: number;
   getValue: (e: SleepDiaryEntry) => number;
   format: (v: number) => string;
 }
 
 const CHART_DEFS: ChartDef[] = [
-  {
-    title: 'Eficiência do sono (%)',
-    color: '#3ECFB0',
-    refValue: 85,
-    maxValue: 100,
-    getValue: (e) => e.metrics.sleepEfficiencyPercent,
-    format: (v) => `${v}%`,
-  },
-  {
-    title: 'TTS calculado',
-    color: '#6D5DF6',
-    refValue: 420,
-    maxValue: 600,
-    getValue: (e) => e.metrics.ttsCalculatedMinutes,
-    format: formatDuration,
-  },
-  {
-    title: 'Latência para dormir (min)',
-    color: '#8B7FE8',
-    refValue: 30,
-    maxValue: 120,
-    getValue: (e) => e.metrics.lisMinutes,
-    format: (v) => `${v}'`,
-  },
-  {
-    title: 'WASO (min)',
-    color: '#FF8C42',
-    refValue: 30,
-    maxValue: 120,
-    getValue: (e) => e.metrics.wasoMinutes,
-    format: (v) => `${v}'`,
-  },
+  { title: 'Eficiência (%)', color: '#3ECFB0', refValue: 85,  maxValue: 100, getValue: e => e.metrics.sleepEfficiencyPercent, format: v => `${v}%` },
+  { title: 'TTS calculado',  color: '#6D5DF6', refValue: 420, maxValue: 600, getValue: e => e.metrics.ttsCalculatedMinutes,   format: formatDuration },
+  { title: 'Latência (min)', color: '#8B7FE8', refValue: 30,  maxValue: 120, getValue: e => e.metrics.lisMinutes,             format: v => `${v}'` },
+  { title: 'WASO (min)',     color: '#FF8C42', refValue: 30,  maxValue: 120, getValue: e => e.metrics.wasoMinutes,            format: v => `${v}'` },
 ];
 
 function barChartHtml(entries: SleepDiaryEntry[]): string {
+  const last14 = entries.slice(-14);
   const charts = CHART_DEFS.map((def) => {
-    const rows = entries.slice(-14).map((e) => {
-      const val = def.getValue(e);
-      const pct = Math.min(100, Math.round((val / def.maxValue) * 100));
-      return `
-        <div class="bar-row">
-          <span class="bar-date">${dd(e.input.entryDate)}</span>
-          <div class="bar-track">
-            <div class="bar-fill" style="width:${pct}%;background:${def.color}"></div>
-            ${def.refValue !== null
-              ? `<div class="bar-ref" style="left:${Math.min(100, Math.round((def.refValue / def.maxValue) * 100))}%"></div>`
-              : ''}
-          </div>
-          <span class="bar-val">${def.format(val)}</span>
-        </div>`;
+    const rows = last14.map((e) => {
+      const val  = def.getValue(e);
+      const fill = Math.min(100, (val / def.maxValue) * 100).toFixed(1);
+      const ref  = def.refValue !== null
+        ? `<div class="bar-ref" style="left:${Math.min(100, (def.refValue / def.maxValue) * 100).toFixed(1)}%"></div>`
+        : '';
+      return `<div class="bar-row">
+        <span class="bar-date">${dd(e.input.entryDate)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${fill}%;background:${def.color}"></div>${ref}</div>
+        <span class="bar-val">${def.format(val)}</span>
+      </div>`;
     }).join('');
     return `<div class="chart-box"><div class="chart-title">${def.title}</div>${rows}</div>`;
   });
   return `<div class="chart-grid">${charts.join('')}</div>`;
 }
 
-// ─── timeline section ─────────────────────────────────────────────────────────
-
-const RANGE_START = 18 * 60; // 18:00 in minutes from midnight
-const RANGE_TOTAL = 20 * 60; // 20 hours (18:00 → 14:00)
-
-function clockToMin(hhmm: string): number {
-  const [h, m] = hhmm.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function offsetFromRange(hhmm: string): number {
-  let mins = clockToMin(hhmm);
-  if (mins < RANGE_START) mins += 24 * 60;
-  return mins - RANGE_START;
-}
-
-function timelineHtml(entries: SleepDiaryEntry[]): string {
-  const SEG = { latency: '#8B7FE8', sleep: '#3ECFB0', waso: '#FF8C42', inertia: '#F8C86A', void: 'transparent' };
-
-  const rows = entries.slice(-14).map((e) => {
-    const { bedTime, sleepLatencyMinutes: lis, nightAwakeningsCount, wasoMinutes: waso,
-            finalWakeTime, outOfBedLatencyMinutes: inertia } = e.input;
-
-    const bedOffset  = Math.max(0, offsetFromRange(bedTime));
-    const wakeOffset = Math.min(RANGE_TOTAL, offsetFromRange(finalWakeTime));
-
-    const segs: Array<{ w: number; color: string }> = [];
-    const pct = (m: number) => Math.max(0, Math.min(100, (m / RANGE_TOTAL) * 100)).toFixed(2);
-
-    // void before bed
-    if (bedOffset > 0) segs.push({ w: bedOffset, color: SEG.void });
-    // latency
-    const lisC = Math.min(lis, wakeOffset - bedOffset);
-    if (lisC > 0) segs.push({ w: lisC, color: SEG.latency });
-    // sleep / waso
-    const sleepSpan = wakeOffset - bedOffset - lisC;
-    if (sleepSpan > 0) {
-      const capWaso = Math.min(waso, sleepSpan);
-      if (nightAwakeningsCount > 0 && capWaso > 0) {
-        const wasoEach = capWaso / nightAwakeningsCount;
-        const netSleep = sleepSpan - capWaso;
-        const seg = netSleep / (nightAwakeningsCount + 1);
-        for (let i = 0; i < nightAwakeningsCount; i++) {
-          if (seg > 0.5) segs.push({ w: seg, color: SEG.sleep });
-          segs.push({ w: wasoEach, color: SEG.waso });
-        }
-        if (seg > 0.5) segs.push({ w: seg, color: SEG.sleep });
-      } else {
-        segs.push({ w: sleepSpan, color: SEG.sleep });
-      }
-    }
-    // inertia
-    const inertiaC = Math.min(inertia, RANGE_TOTAL - wakeOffset);
-    if (inertiaC > 0) segs.push({ w: inertiaC, color: SEG.inertia });
-    // void after
-    const postOffset = RANGE_TOTAL - wakeOffset - inertiaC;
-    if (postOffset > 0) segs.push({ w: postOffset, color: SEG.void });
-
-    const segHtml = segs.map(s =>
-      `<div class="tl-seg" style="width:${pct(s.w)}%;background:${s.color}"></div>`,
-    ).join('');
-
-    return `
-      <div class="timeline-row">
-        <span class="tl-date">${dd(e.input.entryDate)}</span>
-        <div class="tl-track">${segHtml}</div>
-        <span class="tl-eff">${e.metrics.sleepEfficiencyPercent}%</span>
-      </div>`;
-  }).join('');
-
-  const legend = [
-    { color: SEG.latency, label: 'Latência' },
-    { color: SEG.sleep, label: 'Sono' },
-    { color: SEG.waso, label: 'WASO' },
-    { color: SEG.inertia, label: 'Inércia' },
-  ];
-
-  return rows + `<div class="legend">${legend.map(l =>
-    `<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div>${l.label}</div>`,
-  ).join('')}</div>`;
-}
-
 // ─── data table ───────────────────────────────────────────────────────────────
 
 function dataTableHtml(entries: SleepDiaryEntry[]): string {
-  const headers = ['Data', 'Deitar', 'Acordar', 'LIS', 'Despert.', 'WASO', 'TTS calc.', 'TTS perc.', 'Efic.'];
+  const headers = ['Data', 'Deitar', 'Acordar', 'LIS', 'Desp.', 'WASO', 'TTS calc.', 'TTS perc.', 'Efic.'];
   const thead = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
   const rows = entries.map((e) => {
     const eff = e.metrics.sleepEfficiencyPercent;
@@ -302,20 +365,20 @@ export function buildReportHtml(
   entries: SleepDiaryEntry[],
   reportType: ReportType,
 ): string {
-  // newest-first → reverse to chronological
+  // sort chronologically (oldest → newest)
   const chrono = [...entries].sort((a, b) => a.input.entryDate.localeCompare(b.input.entryDate));
   const avg = calculateSleepDiaryAverages(chrono.map(e => ({ input: e.input, metrics: e.metrics })));
   const patientAge = profile.birthDate ? `${age(profile.birthDate)} anos` : '';
 
   const body = `
     <div class="header">
-      <div class="header-title">DIÁRIO DO SONO</div>
-      <div class="header-sub">BY FERNANDO AZEVEDO · PNEUMOLOGIA E MEDICINA DO SONO</div>
-      <div class="header-patient">
+      <div class="hdr-title">DIÁRIO DO SONO</div>
+      <div class="hdr-sub">BY FERNANDO AZEVEDO · PNEUMOLOGIA E MEDICINA DO SONO</div>
+      <div class="hdr-row">
         <div><strong>${profile.name}</strong></div>
-        ${patientAge ? `<div><span>${patientAge}</span></div>` : ''}
-        <div><span>Período: ${periodLabel(chrono)}</span></div>
-        <div><span>${chrono.length} ${chrono.length === 1 ? 'noite' : 'noites'}</span></div>
+        ${patientAge ? `<div>${patientAge}</div>` : ''}
+        <div>Período: ${periodLabel(chrono)}</div>
+        <div>${chrono.length} ${chrono.length === 1 ? 'noite' : 'noites'}</div>
       </div>
     </div>
 
@@ -324,24 +387,22 @@ export function buildReportHtml(
 
     ${isiBlock(profile)}
 
+    <h2>Gráfico de actgrafia do sono</h2>
+    ${actTimelineHtml(chrono)}
+
     <h2>Evolução das métricas</h2>
     ${barChartHtml(chrono)}
 
     ${reportType === 'detailed' ? `
       <div class="page-break"></div>
-
-      <h2>Linha do tempo do sono</h2>
-      ${timelineHtml(chrono)}
-
       <h2>Registros detalhados</h2>
       ${dataTableHtml(chrono)}
     ` : ''}
 
-    <div class="footer">Diário do Sono · By Fernando Azevedo · Pneumologia e Medicina do Sono · Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+    <div class="footer">Diário do Sono · By Fernando Azevedo · Pneumologia e Medicina do Sono · ${new Date().toLocaleDateString('pt-BR')}</div>
   `;
 
   return `<!DOCTYPE html><html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><style>${CSS}</style></head>
-<body>${body}</body>
-</html>`;
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head>
+<body>${body}</body></html>`;
 }

@@ -640,16 +640,20 @@ function drawChartsPage(
 export type ReportType = 'consolidated' | 'detailed';
 
 /**
- * Page order for both modes:
- *   1+  Transposed data table (columns=days, rows=params; 7 days per page)
- *   n+1 Actigraphy timeline
- *   n+2 Averages + patient info
- *   n+3 Metric trend charts
+ * consolidated — 2 páginas para consulta rápida:
+ *   Pág 1  Médias clínicas + dados do paciente + IGI
+ *   Pág 2  Gráfico de actigrafia (últimas 14 noites)
+ *
+ * detailed — relatório completo:
+ *   Pág 1+  Tabela transposta por noite (7 dias/pág)
+ *   Pág n+1 Gráfico de actigrafia
+ *   Pág n+2 Médias clínicas + dados do paciente + IGI
+ *   Pág n+3 Gráficos de evolução (eficiência, TTS, LIS, WASO)
  */
 export async function generateSleepDiaryPdf(
   profile: PatientProfile,
   entries: SleepDiaryEntry[],
-  _reportType: ReportType = 'detailed',
+  reportType: ReportType = 'detailed',
 ): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' }) as unknown as JsPDFInstance;
@@ -659,28 +663,39 @@ export async function generateSleepDiaryPdf(
     chronological.map((e) => ({ input: e.input, metrics: e.metrics })),
   );
 
-  // Pages 1+: transposed data table (7 days per page)
-  const chunks: SleepDiaryEntry[][] = [];
-  for (let i = 0; i < chronological.length; i += DAYS_PER_PAGE) {
-    chunks.push(chronological.slice(i, i + DAYS_PER_PAGE));
+  if (reportType === 'consolidated') {
+    // Pág 1 — médias + paciente + IGI
+    drawAveragesPage(doc, profile, chronological, averages);
+    drawFooter(doc, 1);
+
+    // Pág 2 — actigrafia (últimas 14 noites)
+    doc.addPage();
+    drawTimelinePage(doc, chronological.slice(-14), doc.getNumberOfPages());
+
+  } else {
+    // Pág 1+: tabela transposta (7 dias por página)
+    const chunks: SleepDiaryEntry[][] = [];
+    for (let i = 0; i < chronological.length; i += DAYS_PER_PAGE) {
+      chunks.push(chronological.slice(i, i + DAYS_PER_PAGE));
+    }
+    for (let ci = 0; ci < chunks.length; ci++) {
+      if (ci > 0) doc.addPage();
+      drawSingleTransposedTable(doc, chunks[ci], doc.getNumberOfPages());
+    }
+
+    // Actigrafia
+    doc.addPage();
+    drawTimelinePage(doc, chronological.slice(-14), doc.getNumberOfPages());
+
+    // Médias
+    doc.addPage();
+    drawAveragesPage(doc, profile, chronological, averages);
+    drawFooter(doc, doc.getNumberOfPages());
+
+    // Gráficos de evolução
+    doc.addPage();
+    drawChartsPage(doc, chronological, doc.getNumberOfPages());
   }
-  for (let ci = 0; ci < chunks.length; ci++) {
-    if (ci > 0) doc.addPage();
-    drawSingleTransposedTable(doc, chunks[ci], doc.getNumberOfPages());
-  }
-
-  // Next page: actigraphy timeline
-  doc.addPage();
-  drawTimelinePage(doc, chronological.slice(-14), doc.getNumberOfPages());
-
-  // Next page: averages
-  doc.addPage();
-  drawAveragesPage(doc, profile, chronological, averages);
-  drawFooter(doc, doc.getNumberOfPages());
-
-  // Next page: metric trend charts
-  doc.addPage();
-  drawChartsPage(doc, chronological, doc.getNumberOfPages());
 
   return (doc as unknown as { output(type: string): Blob }).output('blob');
 }

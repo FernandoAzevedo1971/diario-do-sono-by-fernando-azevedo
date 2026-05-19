@@ -385,25 +385,8 @@ function barChartHtml(entries: SleepDiaryEntry[]): string {
 
 // ─── public API ───────────────────────────────────────────────────────────────
 
-export function buildReportHtml(
-  profile: PatientProfile,
-  entries: SleepDiaryEntry[],
-  _reportType: ReportType,
-): string {
-  const chrono = [...entries].sort((a, b) => a.input.entryDate.localeCompare(b.input.entryDate));
-  const avg = calculateSleepDiaryAverages(chrono.map(e => ({ input: e.input, metrics: e.metrics })));
-  const patientAge = profile.birthDate ? `${age(profile.birthDate)} anos` : '';
-
-  const body = `
-    ${transposedTableSections(chrono)}
-
-    <div class="page-break"></div>
-
-    <h2>Linha do Tempo do Sono</h2>
-    ${actTimelineHtml(chrono)}
-
-    <div class="page-break"></div>
-
+function headerBlock(profile: PatientProfile, chrono: SleepDiaryEntry[], patientAge: string): string {
+  return `
     <div class="header">
       <div class="hdr-title">DIÁRIO DO SONO</div>
       <div class="hdr-sub">BY FERNANDO AZEVEDO · PNEUMOLOGIA E MEDICINA DO SONO</div>
@@ -413,19 +396,66 @@ export function buildReportHtml(
         <div>Período: ${periodLabel(chrono)}</div>
         <div>${chrono.length} ${chrono.length === 1 ? 'noite' : 'noites'}</div>
       </div>
-    </div>
+    </div>`;
+}
 
-    <h2>Médias do período (${avg.daysCount} ${avg.daysCount === 1 ? 'noite' : 'noites'})</h2>
-    ${metricsGrid(avg)}
-    ${isiBlock(profile)}
+export function buildReportHtml(
+  profile: PatientProfile,
+  entries: SleepDiaryEntry[],
+  reportType: ReportType,
+): string {
+  const chrono = [...entries].sort((a, b) => a.input.entryDate.localeCompare(b.input.entryDate));
+  const avg = calculateSleepDiaryAverages(chrono.map(e => ({ input: e.input, metrics: e.metrics })));
+  const patientAge = profile.birthDate ? `${age(profile.birthDate)} anos` : '';
 
-    <div class="page-break"></div>
+  const footer = `<div class="footer">Diário do Sono · By Fernando Azevedo · Pneumologia e Medicina do Sono · ${new Date().toLocaleDateString('pt-BR')}</div>`;
 
-    <h2>Evolução das métricas</h2>
-    ${barChartHtml(chrono)}
+  let body: string;
 
-    <div class="footer">Diário do Sono · By Fernando Azevedo · Pneumologia e Medicina do Sono · ${new Date().toLocaleDateString('pt-BR')}</div>
-  `;
+  if (reportType === 'consolidated') {
+    // Pág 1 — médias + paciente + IGI
+    // Pág 2 — actigrafia
+    body = `
+      ${headerBlock(profile, chrono, patientAge)}
+      <h2>Médias do período (${avg.daysCount} ${avg.daysCount === 1 ? 'noite' : 'noites'})</h2>
+      ${metricsGrid(avg)}
+      ${isiBlock(profile)}
+
+      <div class="page-break"></div>
+
+      <h2>Linha do Tempo do Sono</h2>
+      ${actTimelineHtml(chrono)}
+
+      ${footer}
+    `;
+  } else {
+    // Pág 1+ — tabela transposta
+    // Pág n+1 — actigrafia
+    // Pág n+2 — médias
+    // Pág n+3 — gráficos de evolução
+    body = `
+      ${transposedTableSections(chrono)}
+
+      <div class="page-break"></div>
+
+      <h2>Linha do Tempo do Sono</h2>
+      ${actTimelineHtml(chrono)}
+
+      <div class="page-break"></div>
+
+      ${headerBlock(profile, chrono, patientAge)}
+      <h2>Médias do período (${avg.daysCount} ${avg.daysCount === 1 ? 'noite' : 'noites'})</h2>
+      ${metricsGrid(avg)}
+      ${isiBlock(profile)}
+
+      <div class="page-break"></div>
+
+      <h2>Evolução das métricas</h2>
+      ${barChartHtml(chrono)}
+
+      ${footer}
+    `;
+  }
 
   return `<!DOCTYPE html><html lang="pt-BR">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head>

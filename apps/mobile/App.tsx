@@ -189,7 +189,6 @@ export default function App() {
             setRoute('diary');
           }}
           onSummary={() => setRoute('summary')}
-          onReport={() => setRoute('report')}
         />
       )}
       {route === 'summary' && (

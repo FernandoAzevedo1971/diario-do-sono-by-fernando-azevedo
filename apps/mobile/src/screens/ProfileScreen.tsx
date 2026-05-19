@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppBackground } from '../components/AppBackground';
+import { BackArrow } from '../components/BackArrow';
 import { GlassCard } from '../components/GlassCard';
 import { OptionCard } from '../components/OptionCard';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -35,7 +36,7 @@ function isCompleteBirthDate(value: string): boolean {
   return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }
 
-export function ProfileScreen({ initialEmail, onSave }: { initialEmail: string; onSave: (profile: PatientProfile) => void | Promise<void> }) {
+export function ProfileScreen({ initialEmail, onSave, onBack }: { initialEmail: string; onSave: (profile: PatientProfile) => void | Promise<void>; onBack?: () => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState(initialEmail);
   const [birthDate, setBirthDate] = useState('');
@@ -64,6 +65,7 @@ export function ProfileScreen({ initialEmail, onSave }: { initialEmail: string; 
   return (
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {onBack ? <BackArrow onPress={onBack} /> : null}
         <Text style={styles.title}>Perfil inicial</Text>
         <Text style={styles.subtitle}>Precisamos destes dados para personalizar lembretes e relatórios.</Text>
         <GlassCard style={styles.card}>

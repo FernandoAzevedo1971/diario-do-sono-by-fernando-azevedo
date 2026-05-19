@@ -175,10 +175,10 @@ export default function App() {
       <StatusBar style="light" />
       {route === 'loading' && <SplashScreen />}
       {route === 'welcome' && <WelcomeScreen onStart={() => setRoute(user ? 'profile' : 'auth')} />}
-      {route === 'auth' && <AuthScreen onAuthenticated={handleAuthenticated} />}
-      {route === 'profile' && <ProfileScreen initialEmail={user?.email ?? ''} onSave={handleSaveProfile} />}
-      {route === 'isiPrompt' && <IsiPromptScreen onComplete={handleCompleteInitialIsi} />}
-      {route === 'instructions' && <InstructionsScreen onContinue={() => setRoute('today')} />}
+      {route === 'auth' && <AuthScreen onAuthenticated={handleAuthenticated} onBack={() => setRoute('welcome')} />}
+      {route === 'profile' && <ProfileScreen initialEmail={user?.email ?? ''} onSave={handleSaveProfile} onBack={user ? undefined : () => setRoute('auth')} />}
+      {route === 'isiPrompt' && <IsiPromptScreen onComplete={handleCompleteInitialIsi} onBack={() => setRoute('profile')} />}
+      {route === 'instructions' && <InstructionsScreen onContinue={() => setRoute('today')} onBack={() => setRoute('isiPrompt')} />}
       {route === 'today' && profile && (
         <TodayScreen
           profile={profile}

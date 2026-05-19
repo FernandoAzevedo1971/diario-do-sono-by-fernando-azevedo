@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { calculateSleepDiary, minutesBetweenClockTimes, type DailyFeeling, type SleepDiaryInput, type SleepQuality } from '@diario-do-sono/core';
 import { AppBackground } from '../components/AppBackground';
+import { BackArrow } from '../components/BackArrow';
 import { DurationInput, StepperInput, TimeInput } from '../components/DiaryInputs';
 import { GlassCard } from '../components/GlassCard';
 import { SleepTimeline } from '../components/SleepTimeline';
@@ -234,6 +235,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
   return (
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <BackArrow onPress={onCancel} />
         <Text style={styles.progress}>Pergunta {step + 1} de {steps.length}</Text>
 
         {/* Live timeline preview — updates as the user fills in each step */}

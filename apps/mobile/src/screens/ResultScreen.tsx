@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { calculateSleepDiaryAverages, formatDuration } from '@diario-do-sono/core';
 import { AppBackground } from '../components/AppBackground';
+import { BackArrow } from '../components/BackArrow';
 import { GlassCard } from '../components/GlassCard';
 import { MetricCard } from '../components/MetricCard';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -34,6 +35,7 @@ export function ResultScreen({ entry, entries, onFinish, onAddAnother, onSummary
   return (
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content}>
+        <BackArrow onPress={onFinish} />
         <Text style={styles.title}>Resultado do dia</Text>
 
         {/* Sleep timeline visualization */}

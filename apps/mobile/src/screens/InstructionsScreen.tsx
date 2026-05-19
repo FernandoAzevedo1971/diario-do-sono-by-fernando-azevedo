@@ -1,14 +1,16 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { AppBackground } from '../components/AppBackground';
+import { BackArrow } from '../components/BackArrow';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 
-export function InstructionsScreen({ onContinue }: { onContinue: () => void }) {
+export function InstructionsScreen({ onContinue, onBack }: { onContinue: () => void; onBack?: () => void }) {
   return (
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content}>
+        {onBack ? <BackArrow onPress={onBack} /> : null}
         <Text style={styles.title}>Instruções</Text>
         <GlassCard style={styles.card}>
           <Text style={styles.text}>

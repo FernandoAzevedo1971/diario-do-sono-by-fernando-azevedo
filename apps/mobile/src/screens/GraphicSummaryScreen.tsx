@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatDuration } from '@diario-do-sono/core';
 import { AppBackground } from '../components/AppBackground';
+import { BackArrow } from '../components/BackArrow';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
@@ -478,6 +479,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
     return (
       <AppBackground>
         <View style={emptyStyles.container}>
+          <BackArrow onPress={onBack} />
           <Text style={emptyStyles.title}>Nenhum registro ainda</Text>
           <Text style={emptyStyles.sub}>Preencha o diário do sono para ver o resumo gráfico.</Text>
           <PrimaryButton label="Voltar" variant="secondary" onPress={onBack} />
@@ -489,6 +491,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
   return (
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <BackArrow onPress={onBack} />
         <Text style={styles.title}>Resumo Gráfico</Text>
         <Text style={styles.subtitle}>Últimas 2 semanas · {recent.length} noite{recent.length !== 1 ? 's' : ''}</Text>
 

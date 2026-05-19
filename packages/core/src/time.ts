@@ -36,7 +36,7 @@ export function minutesBetweenClockTimes(startTime: string, endTime: string): nu
 
 export function formatDuration(totalMinutes: number): string {
   const sign = totalMinutes < 0 ? '-' : '';
-  const absoluteMinutes = Math.abs(totalMinutes);
+  const absoluteMinutes = Math.round(Math.abs(totalMinutes));
   const hours = Math.floor(absoluteMinutes / 60);
   const minutes = absoluteMinutes % 60;
 

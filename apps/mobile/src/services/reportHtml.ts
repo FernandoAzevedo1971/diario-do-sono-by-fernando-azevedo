@@ -4,12 +4,9 @@ import type { ReportType } from './pdfService';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
-// Chart window: 18:00 → 14:00 next day (20 hours = 1200 min)
-const RANGE_START_H = 18;
+const RANGE_START_H   = 18;
 const RANGE_TOTAL_MIN = 20 * 60;
-
-// Axis ticks every 2 hours
-const AXIS_TICKS = [18, 20, 22, 0, 2, 4, 6, 8, 10, 12, 14];
+const AXIS_TICKS      = [18, 20, 22, 0, 2, 4, 6, 8, 10, 12, 14];
 
 const SEG_COLOR = {
   latency: '#8B7FE8',
@@ -50,7 +47,6 @@ function clockToMinutes(hhmm: string): number {
 
 function offsetFromRange(hhmm: string): number {
   let mins = clockToMinutes(hhmm);
-  // wrap midnight
   if (mins < RANGE_START_H * 60) mins += 24 * 60;
   return mins - RANGE_START_H * 60;
 }
@@ -63,6 +59,20 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
+function fmtQuality(q: string | undefined | null): string {
+  if (q === 'good') return 'Boa';
+  if (q === 'regular') return 'Reg.';
+  if (q === 'bad') return 'Ruim';
+  return '—';
+}
+
+function fmtFeeling(f: string | undefined | null): string {
+  if (f === 'rested') return 'Desc.';
+  if (f === 'tired') return 'Cansado';
+  if (f === 'sleepy') return 'Sonol.';
+  return '—';
+}
+
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 
 const CSS = `
@@ -73,11 +83,23 @@ const CSS = `
        padding-bottom: 4px; margin: 16px 0 10px; }
 
   /* ── Header ── */
-  .header { background: #080B1F; color: #fff; padding: 12px 16px; }
+  .header { background: #080B1F; color: #fff; padding: 12px 16px; margin-bottom: 4px; }
   .hdr-title { font-size: 20px; font-weight: 900; letter-spacing: 2px; }
   .hdr-sub { font-size: 9px; opacity: .6; letter-spacing: 1.5px; margin-top: 2px; }
   .hdr-row { display: flex; gap: 20px; margin-top: 8px; font-size: 10px; opacity: .9; }
   .hdr-row strong { font-weight: 700; }
+
+  /* ── Transposed table ── */
+  .trans-table { width: 100%; border-collapse: collapse; font-size: 8.5px; table-layout: fixed; }
+  .trans-table thead tr { background: #080B1F; color: #fff; }
+  .trans-table thead th { padding: 5px 3px; text-align: center; font-weight: 700; }
+  .trans-table thead th:first-child { text-align: left; width: 26%; }
+  .trans-table td { padding: 3.5px 4px; text-align: center; border-bottom: 1px solid #eee; }
+  .param-lbl { text-align: left !important; color: #666; font-size: 8px; }
+  .alt-row td { background: #f8f9ff; }
+  .sec-hdr td { background: #d2f5f0; color: #1e8c78; font-size: 7.5px; font-weight: 800;
+                letter-spacing: 0.6px; padding: 3px 6px; text-align: left !important; }
+  .sec-calc td { background: #e6e4ff; color: #7060d8; }
 
   /* ── Metrics grid ── */
   .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
@@ -87,7 +109,7 @@ const CSS = `
 
   /* ── ISI ── */
   .isi-box { background: #fff8e8; border: 1px solid #F8C86A; border-radius: 7px;
-             padding: 9px 12px; display: flex; align-items: center; gap: 10px; }
+             padding: 9px 12px; display: flex; align-items: center; gap: 10px; margin-top: 10px; }
   .isi-score { font-size: 26px; font-weight: 900; color: #c8880a; }
   .isi-label { font-size: 10px; color: #7a5500; }
   .isi-interp { font-size: 9px; color: #9a6800; margin-top: 2px; }
@@ -99,40 +121,30 @@ const CSS = `
   .act-col-track { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .act-col-stats { display: flex; flex-direction: row; }
   .act-stat-col { width: 30px; flex-shrink: 0; display: flex; flex-direction: column; text-align: center; }
-
-  /* Axis row */
-  .act-axis-spacer { height: 18px; flex-shrink: 0; } /* matches .act-date height */
+  .act-axis-spacer { height: 18px; flex-shrink: 0; }
   .act-axis { position: relative; height: 18px; flex-shrink: 0; }
   .act-tick { position: absolute; transform: translateX(-50%); font-size: 7.5px; color: #999; top: 3px; }
   .act-tick-line { position: absolute; top: 12px; bottom: 0; width: 1px; background: #ddd; }
   .act-stat-hdr { height: 18px; flex-shrink: 0; font-size: 7.5px; color: #999;
                   display: flex; align-items: flex-end; justify-content: center; padding-bottom: 2px;
                   font-weight: 700; }
-
-  /* Date cell */
   .act-date { font-size: 7.5px; color: #777; text-align: right; padding-right: 4px;
               display: flex; align-items: center; justify-content: flex-end;
               border-bottom: 1px solid #f0f0f0; }
-
-  /* Track cell */
   .act-track { position: relative; height: 18px; background: #ececec; flex-shrink: 0;
                border-bottom: 1px solid #f4f4f4; }
   .act-seg { position: absolute; top: 2px; bottom: 2px; }
   .act-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.6); }
-
-  /* Stats cells */
   .act-stat { height: 18px; flex-shrink: 0; font-size: 7.5px; color: #444;
               display: flex; align-items: center; justify-content: center;
               border-bottom: 1px solid #f0f0f0; }
   .eff-hi { color: #2a9d5c; font-weight: 700; }
   .eff-lo { color: #c0392b; font-weight: 700; }
-
-  /* Legend */
   .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
   .legend-item { display: flex; align-items: center; gap: 4px; font-size: 8.5px; color: #555; }
   .legend-dot { width: 12px; height: 10px; border-radius: 2px; flex-shrink: 0; }
 
-  /* Metric bar charts */
+  /* ── Metric bar charts ── */
   .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .chart-box { }
   .chart-title { font-size: 9.5px; font-weight: 700; color: #444; margin-bottom: 5px; }
@@ -143,17 +155,73 @@ const CSS = `
   .bar-ref { position: absolute; top: 0; bottom: 0; width: 1.5px; background: rgba(220,50,50,.7); }
   .bar-val { width: 30px; font-size: 7.5px; color: #555; flex-shrink: 0; }
 
-  /* Table */
-  table { width: 100%; border-collapse: collapse; font-size: 9px; }
-  thead tr { background: #080B1F; color: #fff; }
-  th { padding: 5px 3px; text-align: center; font-weight: 700; }
-  td { padding: 3px; text-align: center; border-bottom: 1px solid #eee; }
-  tr:nth-child(even) td { background: #f8f9ff; }
-
   .page-break { page-break-after: always; }
   .footer { margin-top: 16px; padding-top: 7px; border-top: 1px solid #ddd;
             text-align: center; font-size: 8px; color: #aaa; }
 `;
+
+// ─── transposed data table ────────────────────────────────────────────────────
+
+interface TransRow { label: string; getValue: (e: SleepDiaryEntry) => string; }
+
+const INPUT_ROWS: TransRow[] = [
+  { label: 'Hora deitar',    getValue: (e) => e.input.bedTime },
+  { label: 'Latência (min)', getValue: (e) => String(e.input.sleepLatencyMinutes) },
+  { label: 'Despertares',    getValue: (e) => String(e.input.nightAwakeningsCount) },
+  { label: 'WASO (min)',     getValue: (e) => String(e.input.wasoMinutes) },
+  { label: 'Hora acordar',   getValue: (e) => e.input.finalWakeTime },
+  { label: 'Inércia (min)',  getValue: (e) => String(e.input.outOfBedLatencyMinutes) },
+  { label: 'TTS percebido',  getValue: (e) => formatDuration(e.input.perceivedSleepMinutes) },
+  { label: 'Qualidade sono', getValue: (e) => fmtQuality(e.input.sleepQuality) },
+  { label: 'Ao acordar',     getValue: (e) => fmtFeeling(e.input.morningFeeling) },
+  { label: 'Durante o dia',  getValue: (e) => fmtFeeling(e.input.daytimeFeeling) },
+];
+
+const CALC_ROWS: TransRow[] = [
+  { label: 'Hora sair cama', getValue: (e) => e.metrics.outOfBedTime },
+  { label: 'TTC',            getValue: (e) => formatDuration(e.metrics.ttcMinutes) },
+  { label: 'TTS calculado',  getValue: (e) => formatDuration(e.metrics.ttsCalculatedMinutes) },
+  { label: 'Eficiência',     getValue: (e) => `${e.metrics.sleepEfficiencyPercent}%` },
+  { label: 'Fragmentação',   getValue: (e) => String(e.metrics.fragmentationCount) },
+  { label: 'Dif. TTS',       getValue: (e) => {
+    const d = e.metrics.perceivedCalculatedDiffMinutes;
+    return d >= 0 ? `+${d}'` : `${d}'`;
+  }},
+];
+
+function transposedTableHtml(entries: SleepDiaryEntry[]): string {
+  const cols = entries.length;
+  const heads = entries.map(e => `<th>${dd(e.input.entryDate)}</th>`).join('');
+
+  function rows(defs: TransRow[], sectionCls: string): string {
+    return defs.map((row, i) => {
+      const cells = entries.map(e => `<td>${row.getValue(e)}</td>`).join('');
+      const cls = i % 2 === 1 ? ' class="alt-row"' : '';
+      return `<tr${cls}><td class="param-lbl">${row.label}</td>${cells}</tr>`;
+    }).join('');
+  }
+
+  return `
+    <table class="trans-table">
+      <thead><tr><th>Parâmetro</th>${heads}</tr></thead>
+      <tbody>
+        <tr class="sec-hdr"><td colspan="${cols + 1}">ANOTADO</td></tr>
+        ${rows(INPUT_ROWS, '')}
+        <tr class="sec-hdr sec-calc"><td colspan="${cols + 1}">CALCULADO</td></tr>
+        ${rows(CALC_ROWS, 'calc')}
+      </tbody>
+    </table>`;
+}
+
+function transposedTableSections(entries: SleepDiaryEntry[]): string {
+  const chunks: SleepDiaryEntry[][] = [];
+  for (let i = 0; i < entries.length; i += 7) chunks.push(entries.slice(i, i + 7));
+  return chunks.map((chunk, ci) => `
+    ${ci > 0 ? '<div class="page-break"></div>' : ''}
+    <h2>Registros Diários · ${dd(chunk[0].input.entryDate)} – ${dd(chunk[chunk.length - 1].input.entryDate)}</h2>
+    ${transposedTableHtml(chunk)}
+  `).join('');
+}
 
 // ─── metrics grid ─────────────────────────────────────────────────────────────
 
@@ -187,22 +255,18 @@ function isiBlock(profile: PatientProfile): string {
 }
 
 // ─── actigraphy timeline ──────────────────────────────────────────────────────
-// Horizontal stacked bars, one per night, time axis 18:00→14:00
 
 function buildSegments(e: SleepDiaryEntry): Array<{ left: number; width: number; color: string }> {
   const segs: Array<{ left: number; width: number; color: string }> = [];
 
   const bedOff  = clamp(offsetFromRange(e.input.bedTime), 0, RANGE_TOTAL_MIN);
   const wakeOff = clamp(offsetFromRange(e.input.finalWakeTime), 0, RANGE_TOTAL_MIN);
-  const outOff  = clamp(wakeOff + e.input.outOfBedLatencyMinutes, 0, RANGE_TOTAL_MIN);
 
-  const lis   = clamp(e.input.sleepLatencyMinutes, 0, wakeOff - bedOff);
+  const lis     = clamp(e.input.sleepLatencyMinutes, 0, wakeOff - bedOff);
   const inertia = clamp(e.input.outOfBedLatencyMinutes, 0, RANGE_TOTAL_MIN - wakeOff);
 
-  // Latency (in bed, not sleeping)
   if (lis > 0) segs.push({ left: bedOff, width: lis, color: SEG_COLOR.latency });
 
-  // Sleep / WASO interleaved
   const sleepSpan = wakeOff - bedOff - lis;
   if (sleepSpan > 0) {
     const n = e.input.nightAwakeningsCount;
@@ -222,24 +286,18 @@ function buildSegments(e: SleepDiaryEntry): Array<{ left: number; width: number;
     }
   }
 
-  // Inertia (awake in bed after final wake)
   if (inertia > 0) segs.push({ left: wakeOff, width: inertia, color: SEG_COLOR.inertia });
-
-  // Time-in-bed outline (transparent, just for reference — skip, visual clutter)
-  void outOff;
 
   return segs;
 }
 
 function actTimelineHtml(entries: SleepDiaryEntry[]): string {
-  // Grid lines at each axis tick
   const gridLines = AXIS_TICKS.map((h) => {
     let mins = (h - RANGE_START_H) * 60;
     if (mins < 0) mins += 24 * 60;
     return `<div class="act-grid" style="left:${pct(mins)}"></div>`;
   }).join('');
 
-  // Axis tick labels
   const ticks = AXIS_TICKS.map((h) => {
     let mins = (h - RANGE_START_H) * 60;
     if (mins < 0) mins += 24 * 60;
@@ -248,21 +306,17 @@ function actTimelineHtml(entries: SleepDiaryEntry[]): string {
             <div class="act-tick-line" style="left:${pct(mins)}"></div>`;
   }).join('');
 
-  // Stat column headers
   const statHeaders = ['Efic.', 'TTS', 'LIS', 'Desp.'].map(h =>
     `<div class="act-stat-col"><div class="act-stat-hdr">${h}</div></div>`,
   ).join('');
 
-  // Rows
   const rows = entries.map((e) => {
     const segs = buildSegments(e);
     const segHtml = segs.map(s =>
       `<div class="act-seg" style="left:${pct(s.left)};width:${pct(s.width)};background:${s.color}"></div>`,
     ).join('');
-
     const eff = e.metrics.sleepEfficiencyPercent;
     const effCls = eff >= 85 ? 'eff-hi' : eff < 75 ? 'eff-lo' : '';
-
     return `
       <div class="act-layout">
         <div class="act-col-date"><div class="act-date">${dd(e.input.entryDate)}</div></div>
@@ -276,7 +330,6 @@ function actTimelineHtml(entries: SleepDiaryEntry[]): string {
       </div>`;
   }).join('');
 
-  // Axis header row (spans same layout)
   const axisRow = `
     <div class="act-layout">
       <div class="act-col-date"><div class="act-axis-spacer"></div></div>
@@ -284,12 +337,11 @@ function actTimelineHtml(entries: SleepDiaryEntry[]): string {
       <div class="act-col-stats">${statHeaders}</div>
     </div>`;
 
-  // Legend
   const legend = [
-    { color: SEG_COLOR.latency, label: 'Latência (em cama, sem dormir)' },
+    { color: SEG_COLOR.latency, label: 'Latência' },
     { color: SEG_COLOR.sleep,   label: 'Sono' },
-    { color: SEG_COLOR.waso,    label: 'Despertar noturno (WASO)' },
-    { color: SEG_COLOR.inertia, label: 'Inércia (acordado, ainda na cama)' },
+    { color: SEG_COLOR.waso,    label: 'WASO' },
+    { color: SEG_COLOR.inertia, label: 'Inércia' },
   ].map(l =>
     `<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div>${l.label}</div>`,
   ).join('');
@@ -297,15 +349,11 @@ function actTimelineHtml(entries: SleepDiaryEntry[]): string {
   return `<div class="act-wrap">${axisRow}${rows}<div class="legend">${legend}</div></div>`;
 }
 
-// ─── metric trend bar charts ─────────────────────────────────────────────────
+// ─── metric trend bar charts ──────────────────────────────────────────────────
 
 interface ChartDef {
-  title: string;
-  color: string;
-  refValue: number | null;
-  maxValue: number;
-  getValue: (e: SleepDiaryEntry) => number;
-  format: (v: number) => string;
+  title: string; color: string; refValue: number | null;
+  maxValue: number; getValue: (e: SleepDiaryEntry) => number; format: (v: number) => string;
 }
 
 const CHART_DEFS: ChartDef[] = [
@@ -335,42 +383,27 @@ function barChartHtml(entries: SleepDiaryEntry[]): string {
   return `<div class="chart-grid">${charts.join('')}</div>`;
 }
 
-// ─── data table ───────────────────────────────────────────────────────────────
-
-function dataTableHtml(entries: SleepDiaryEntry[]): string {
-  const headers = ['Data', 'Deitar', 'Acordar', 'LIS', 'Desp.', 'WASO', 'TTS calc.', 'TTS perc.', 'Efic.'];
-  const thead = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
-  const rows = entries.map((e) => {
-    const eff = e.metrics.sleepEfficiencyPercent;
-    const cls = eff >= 85 ? 'eff-hi' : eff < 75 ? 'eff-lo' : '';
-    return `<tr>
-      <td>${dd(e.input.entryDate)}</td>
-      <td>${e.input.bedTime}</td>
-      <td>${e.input.finalWakeTime}</td>
-      <td>${e.input.sleepLatencyMinutes}'</td>
-      <td>${e.input.nightAwakeningsCount}</td>
-      <td>${e.input.wasoMinutes}'</td>
-      <td>${formatDuration(e.metrics.ttsCalculatedMinutes)}</td>
-      <td>${formatDuration(e.metrics.ttsPerceivedMinutes)}</td>
-      <td class="${cls}">${eff}%</td>
-    </tr>`;
-  }).join('');
-  return `<table>${thead}<tbody>${rows}</tbody></table>`;
-}
-
 // ─── public API ───────────────────────────────────────────────────────────────
 
 export function buildReportHtml(
   profile: PatientProfile,
   entries: SleepDiaryEntry[],
-  reportType: ReportType,
+  _reportType: ReportType,
 ): string {
-  // sort chronologically (oldest → newest)
   const chrono = [...entries].sort((a, b) => a.input.entryDate.localeCompare(b.input.entryDate));
   const avg = calculateSleepDiaryAverages(chrono.map(e => ({ input: e.input, metrics: e.metrics })));
   const patientAge = profile.birthDate ? `${age(profile.birthDate)} anos` : '';
 
   const body = `
+    ${transposedTableSections(chrono)}
+
+    <div class="page-break"></div>
+
+    <h2>Linha do Tempo do Sono</h2>
+    ${actTimelineHtml(chrono)}
+
+    <div class="page-break"></div>
+
     <div class="header">
       <div class="hdr-title">DIÁRIO DO SONO</div>
       <div class="hdr-sub">BY FERNANDO AZEVEDO · PNEUMOLOGIA E MEDICINA DO SONO</div>
@@ -384,20 +417,12 @@ export function buildReportHtml(
 
     <h2>Médias do período (${avg.daysCount} ${avg.daysCount === 1 ? 'noite' : 'noites'})</h2>
     ${metricsGrid(avg)}
-
     ${isiBlock(profile)}
 
-    <h2>Gráfico de actgrafia do sono</h2>
-    ${actTimelineHtml(chrono)}
+    <div class="page-break"></div>
 
     <h2>Evolução das métricas</h2>
     ${barChartHtml(chrono)}
-
-    ${reportType === 'detailed' ? `
-      <div class="page-break"></div>
-      <h2>Registros detalhados</h2>
-      ${dataTableHtml(chrono)}
-    ` : ''}
 
     <div class="footer">Diário do Sono · By Fernando Azevedo · Pneumologia e Medicina do Sono · ${new Date().toLocaleDateString('pt-BR')}</div>
   `;

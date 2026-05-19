@@ -7,17 +7,27 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 import type { SleepDiaryEntry } from '../types';
 
-// ─── constants (same range as SleepTimeline) ─────────────────────────────────
+// ─── constants ────────────────────────────────────────────────────────────────
 
 const RANGE_START_HOUR = 18;
 const RANGE_TOTAL_MINUTES = 20 * 60; // 18:00 → 14:00 next day
 
 const SEG = {
   latency: '#8B7FE8',
-  sleep: '#3ECFB0',
-  waso: '#FF8C42',
+  sleep:   '#3ECFB0',
+  waso:    '#FF8C42',
   inertia: '#F8C86A',
 };
+
+// Chart layout
+const CHART_H   = 96;                           // total chartArea height (px)
+const VAL_H     = 14;                           // reserved at top for value labels
+const DATE_H    = 16;                           // reserved at bottom for date labels
+const BAR_H_MAX = CHART_H - VAL_H - DATE_H;    // = 66px usable for bars
+
+// Table layout
+const LABEL_W = 84;
+const DAY_W   = 37;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -35,6 +45,26 @@ function clamp(v: number, lo: number, hi: number): number {
 function shortDate(iso: string): string {
   const parts = iso.split('-');
   return `${parts[2]}/${parts[1]}`;
+}
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
+  return chunks;
+}
+
+function fmtQuality(q: string | undefined | null): string {
+  if (q === 'good') return 'Boa';
+  if (q === 'regular') return 'Reg.';
+  if (q === 'bad') return 'Ruim';
+  return '—';
+}
+
+function fmtFeeling(f: string | undefined | null): string {
+  if (f === 'rested') return 'Desc.';
+  if (f === 'tired') return 'Cansado';
+  if (f === 'sleepy') return 'Sonol.';
+  return '—';
 }
 
 // ─── HourAxisRow ─────────────────────────────────────────────────────────────
@@ -71,15 +101,14 @@ const axisStyles = StyleSheet.create({
 });
 
 // ─── SleepBarRow ─────────────────────────────────────────────────────────────
-// One compact row per night in the timeline grid.
 
 function SleepBarRow({ entry }: { entry: SleepDiaryEntry }) {
   const { bedTime, sleepLatencyMinutes, nightAwakeningsCount, wasoMinutes, finalWakeTime, outOfBedLatencyMinutes } = entry.input;
   const outOfBedTime = entry.metrics.outOfBedTime;
 
-  const bedOff = clamp(offsetMin(bedTime), 0, RANGE_TOTAL_MINUTES);
+  const bedOff  = clamp(offsetMin(bedTime), 0, RANGE_TOTAL_MINUTES);
   const wakeOff = clamp(offsetMin(finalWakeTime), 0, RANGE_TOTAL_MINUTES);
-  const oobOff = clamp(offsetMin(outOfBedTime), 0, RANGE_TOTAL_MINUTES);
+  const oobOff  = clamp(offsetMin(outOfBedTime), 0, RANGE_TOTAL_MINUTES);
 
   const segs: Array<{ flex: number; color: string }> = [];
 
@@ -129,7 +158,7 @@ const barRowStyles = StyleSheet.create({
   dateLabel: { color: colors.textMuted, fontSize: 10, width: 36, textAlign: 'right' },
   bar: {
     flex: 1,
-    height: 14,
+    height: 11,
     borderRadius: 4,
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.05)',
@@ -139,7 +168,6 @@ const barRowStyles = StyleSheet.create({
 });
 
 // ─── TrendChart ───────────────────────────────────────────────────────────────
-// Vertical bar chart for a single metric over time.
 
 interface TrendChartProps {
   entries: SleepDiaryEntry[];
@@ -151,8 +179,6 @@ interface TrendChartProps {
   referenceLabel?: string;
 }
 
-const CHART_H = 90;
-
 function TrendChart({ entries, title, getValue, formatValue, barColor, referenceValue, referenceLabel }: TrendChartProps) {
   const values = entries.map(getValue);
   const maxVal = Math.max(...values, referenceValue ?? 0, 1);
@@ -161,12 +187,11 @@ function TrendChart({ entries, title, getValue, formatValue, barColor, reference
     <View style={chartStyles.wrapper}>
       <Text style={chartStyles.title}>{title}</Text>
       <View style={[chartStyles.chartArea, { height: CHART_H }]}>
-        {/* Reference line */}
+
+        {/* Reference line — positioned relative to the bar zone */}
         {referenceValue != null ? (
-          <View style={[chartStyles.refLine, { bottom: (referenceValue / maxVal) * CHART_H }]}>
-            {referenceLabel ? (
-              <Text style={chartStyles.refLabel}>{referenceLabel}</Text>
-            ) : null}
+          <View style={[chartStyles.refLine, { bottom: DATE_H + (referenceValue / maxVal) * BAR_H_MAX }]}>
+            {referenceLabel ? <Text style={chartStyles.refLabel}>{referenceLabel}</Text> : null}
           </View>
         ) : null}
 
@@ -174,15 +199,29 @@ function TrendChart({ entries, title, getValue, formatValue, barColor, reference
         <View style={chartStyles.barsRow}>
           {entries.map((entry, i) => {
             const v = values[i] ?? 0;
-            const barH = Math.max(3, (v / maxVal) * CHART_H);
+            const barH = Math.max(2, (v / maxVal) * BAR_H_MAX);
             return (
               <View key={entry.id} style={chartStyles.barCol}>
-                <Text style={chartStyles.valLabel}>{formatValue(v)}</Text>
-                <View style={[chartStyles.bar, { height: barH, backgroundColor: barColor }]} />
-                <Text style={chartStyles.dateLabel}>{shortDate(entry.input.entryDate)}</Text>
+                {/* Fixed zone at top for value label */}
+                <View style={chartStyles.valZone}>
+                  <Text style={chartStyles.valLabel} numberOfLines={1}>{formatValue(v)}</Text>
+                </View>
+                {/* Remaining space — bar grows from the bottom */}
+                <View style={chartStyles.barZone}>
+                  <View style={[chartStyles.bar, { height: barH, backgroundColor: barColor }]} />
+                </View>
               </View>
             );
           })}
+        </View>
+
+        {/* Date labels below bars */}
+        <View style={chartStyles.dateRow}>
+          {entries.map((entry) => (
+            <View key={entry.id} style={chartStyles.dateLabelCell}>
+              <Text style={chartStyles.dateLabel}>{shortDate(entry.input.entryDate)}</Text>
+            </View>
+          ))}
         </View>
       </View>
     </View>
@@ -193,37 +232,10 @@ const chartStyles = StyleSheet.create({
   wrapper: { gap: spacing.sm },
   title: { color: colors.text, fontSize: 14, fontWeight: '800' },
   chartArea: { position: 'relative' },
-  barsRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 3,
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 18,
-  },
-  barCol: {
-    flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 2,
-  },
-  valLabel: { color: colors.textMuted, fontSize: 7, textAlign: 'center' },
-  bar: { width: '100%', borderRadius: 2, minHeight: 3 },
-  dateLabel: {
-    position: 'absolute',
-    bottom: -18,
-    color: colors.textMuted,
-    fontSize: 7,
-    textAlign: 'center',
-    width: '100%',
-  },
+
   refLine: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: 0, right: 0,
     height: 1,
     backgroundColor: colors.cyan,
     opacity: 0.55,
@@ -236,6 +248,57 @@ const chartStyles = StyleSheet.create({
     color: colors.cyan,
     fontSize: 8,
     opacity: 0.8,
+  },
+
+  barsRow: {
+    position: 'absolute',
+    left: 0, right: 0,
+    top: 0,
+    bottom: DATE_H,
+    flexDirection: 'row',
+    gap: 3,
+  },
+  barCol: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  valZone: {
+    height: VAL_H,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  valLabel: {
+    color: colors.textMuted,
+    fontSize: 7,
+    textAlign: 'center',
+  },
+  barZone: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  bar: {
+    width: '48%',
+    borderRadius: 4,
+    minHeight: 2,
+  },
+
+  dateRow: {
+    position: 'absolute',
+    left: 0, right: 0,
+    bottom: 0,
+    height: DATE_H,
+    flexDirection: 'row',
+  },
+  dateLabelCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateLabel: {
+    color: colors.textMuted,
+    fontSize: 7,
+    textAlign: 'center',
   },
 });
 
@@ -254,6 +317,151 @@ const legendStyles = StyleSheet.create({
   item: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   dot: { width: 9, height: 9, borderRadius: 5 },
   label: { color: colors.textMuted, fontSize: 10 },
+});
+
+// ─── DataTable ────────────────────────────────────────────────────────────────
+
+interface TableRowDef {
+  label: string;
+  getValue: (e: SleepDiaryEntry) => string;
+}
+
+const INPUT_ROWS: TableRowDef[] = [
+  { label: 'Hora deitar',     getValue: (e) => e.input.bedTime },
+  { label: 'Latência (min)',  getValue: (e) => String(e.input.sleepLatencyMinutes) },
+  { label: 'Despertares',     getValue: (e) => String(e.input.nightAwakeningsCount) },
+  { label: 'WASO (min)',      getValue: (e) => String(e.input.wasoMinutes) },
+  { label: 'Hora acordar',    getValue: (e) => e.input.finalWakeTime },
+  { label: 'Inércia (min)',   getValue: (e) => String(e.input.outOfBedLatencyMinutes) },
+  { label: 'TTS percebido',   getValue: (e) => formatDuration(e.input.perceivedSleepMinutes) },
+  { label: 'Qualidade sono',  getValue: (e) => fmtQuality(e.input.sleepQuality) },
+  { label: 'Ao acordar',      getValue: (e) => fmtFeeling(e.input.morningFeeling) },
+  { label: 'Durante o dia',   getValue: (e) => fmtFeeling(e.input.daytimeFeeling) },
+];
+
+const CALC_ROWS: TableRowDef[] = [
+  { label: 'Hora sair cama',  getValue: (e) => e.metrics.outOfBedTime },
+  { label: 'TTC',             getValue: (e) => formatDuration(e.metrics.ttcMinutes) },
+  { label: 'TTS calculado',   getValue: (e) => formatDuration(e.metrics.ttsCalculatedMinutes) },
+  { label: 'Eficiência',      getValue: (e) => `${e.metrics.sleepEfficiencyPercent}%` },
+  { label: 'Fragmentação',    getValue: (e) => String(e.metrics.fragmentationCount) },
+  { label: 'Dif. TTS',        getValue: (e) => {
+    const d = e.metrics.perceivedCalculatedDiffMinutes;
+    return d >= 0 ? `+${d}'` : `${d}'`;
+  }},
+];
+
+function TableSectionRow({ title, numCols }: { title: string; numCols: number }) {
+  return (
+    <View style={[tableStyles.sectionRow, { width: LABEL_W + numCols * DAY_W }]}>
+      <Text style={tableStyles.sectionLabel}>{title}</Text>
+    </View>
+  );
+}
+
+function DataTablePage({ entries }: { entries: SleepDiaryEntry[] }) {
+  const n = entries.length;
+  const tableW = LABEL_W + n * DAY_W;
+
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={{ width: tableW }}>
+
+        {/* Header */}
+        <View style={tableStyles.headerRow}>
+          <View style={{ width: LABEL_W }} />
+          {entries.map((e) => (
+            <View key={e.id} style={{ width: DAY_W, alignItems: 'center' }}>
+              <Text style={tableStyles.headerText}>{shortDate(e.input.entryDate)}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Input section */}
+        <TableSectionRow title="Anotado" numCols={n} />
+        {INPUT_ROWS.map((row, i) => (
+          <View key={row.label} style={[tableStyles.dataRow, i % 2 === 1 && tableStyles.rowAlt]}>
+            <View style={{ width: LABEL_W, paddingLeft: 6, justifyContent: 'center' }}>
+              <Text style={tableStyles.rowLabel} numberOfLines={1}>{row.label}</Text>
+            </View>
+            {entries.map((e) => (
+              <View key={e.id} style={{ width: DAY_W, alignItems: 'center' }}>
+                <Text style={tableStyles.cellText} numberOfLines={1}>{row.getValue(e)}</Text>
+              </View>
+            ))}
+          </View>
+        ))}
+
+        {/* Calculated section */}
+        <TableSectionRow title="Calculado" numCols={n} />
+        {CALC_ROWS.map((row, i) => (
+          <View key={row.label} style={[tableStyles.dataRow, i % 2 === 1 && tableStyles.rowAlt]}>
+            <View style={{ width: LABEL_W, paddingLeft: 6, justifyContent: 'center' }}>
+              <Text style={tableStyles.rowLabel} numberOfLines={1}>{row.label}</Text>
+            </View>
+            {entries.map((e) => (
+              <View key={e.id} style={{ width: DAY_W, alignItems: 'center' }}>
+                <Text style={tableStyles.cellText} numberOfLines={1}>{row.getValue(e)}</Text>
+              </View>
+            ))}
+          </View>
+        ))}
+
+      </View>
+    </ScrollView>
+  );
+}
+
+const tableStyles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(109,93,246,0.28)',
+    borderRadius: 6,
+    paddingVertical: 6,
+    marginBottom: 2,
+  },
+  headerText: {
+    color: colors.text,
+    fontSize: 9,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  sectionRow: {
+    paddingVertical: 3,
+    paddingLeft: 6,
+    backgroundColor: 'rgba(62,207,176,0.1)',
+    borderLeftWidth: 2,
+    borderLeftColor: colors.cyan,
+    marginTop: 4,
+    marginBottom: 1,
+  },
+  sectionLabel: {
+    color: colors.cyan,
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  dataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  rowAlt: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  rowLabel: {
+    color: colors.textMuted,
+    fontSize: 9,
+  },
+  cellText: {
+    color: colors.text,
+    fontSize: 9,
+    textAlign: 'center',
+  },
 });
 
 // ─── GraphicSummaryScreen ────────────────────────────────────────────────────
@@ -284,25 +492,20 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
         <Text style={styles.title}>Resumo Gráfico</Text>
         <Text style={styles.subtitle}>Últimas 2 semanas · {recent.length} noite{recent.length !== 1 ? 's' : ''}</Text>
 
-        {/* ── Timeline section ─────────────────────────── */}
+        {/* ── Timeline ─────────────────────────────────── */}
         <GlassCard style={styles.card}>
           <Text style={styles.sectionTitle}>Linha do tempo do sono</Text>
-
           <View style={styles.legend}>
             <LegendItem color={SEG.latency} label="Latência" />
-            <LegendItem color={SEG.sleep} label="Sono" />
-            <LegendItem color={SEG.waso} label="WASO" />
+            <LegendItem color={SEG.sleep}   label="Sono" />
+            <LegendItem color={SEG.waso}    label="WASO" />
             <LegendItem color={SEG.inertia} label="Inércia" />
           </View>
-
-          {/* Hour axis header */}
           <View style={styles.axisRow}>
             <View style={{ width: 36 + 6 }} />
             <HourAxisRow />
             <View style={{ width: 34 + 6 }} />
           </View>
-
-          {/* One row per night */}
           <View style={styles.timelineRows}>
             {recent.map((entry) => (
               <SleepBarRow key={entry.id} entry={entry} />
@@ -405,6 +608,16 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
             barColor={SEG.inertia}
           />
         </GlassCard>
+
+        {/* ── Tabela de dados (7 dias por página) ──────── */}
+        {chunkArray(recent, 7).map((week, wi) => (
+          <GlassCard key={wi} style={styles.card}>
+            <Text style={styles.sectionTitle}>
+              Tabela de dados · {shortDate(week[0].input.entryDate)} – {shortDate(week[week.length - 1].input.entryDate)}
+            </Text>
+            <DataTablePage entries={week} />
+          </GlassCard>
+        ))}
 
         <PrimaryButton label="Enviar ao Médico" onPress={onReport} />
         <PrimaryButton label="Voltar" variant="secondary" onPress={onBack} />

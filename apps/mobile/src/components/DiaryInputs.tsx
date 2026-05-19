@@ -269,46 +269,65 @@ const stepStyles = StyleSheet.create({
 interface DurationInputProps {
   minutes: number;
   onChange: (minutes: number) => void;
+  maxMinutes?: number;
 }
 
-export function DurationInput({ minutes, onChange }: DurationInputProps) {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
+export function DurationInput({ minutes, onChange, maxMinutes }: DurationInputProps) {
+  const effective = maxMinutes !== undefined ? Math.min(minutes, maxMinutes) : minutes;
+  const hours = Math.floor(effective / 60);
+  const mins = effective % 60;
+  const atMax = maxMinutes !== undefined && effective >= maxMinutes;
+
+  function clampAndEmit(totalMinutes: number) {
+    const clamped = maxMinutes !== undefined
+      ? Math.max(0, Math.min(maxMinutes, totalMinutes))
+      : Math.max(0, totalMinutes);
+    onChange(clamped);
+  }
 
   function setHours(h: number) {
-    onChange(Math.max(0, h) * 60 + mins);
+    clampAndEmit(Math.max(0, h) * 60 + mins);
   }
 
   function setMins(m: number) {
     const snapped = Math.max(0, Math.min(55, Math.round(m / 5) * 5));
-    onChange(hours * 60 + snapped);
+    clampAndEmit(hours * 60 + snapped);
   }
 
+  const maxLabel = maxMinutes !== undefined
+    ? `${Math.floor(maxMinutes / 60)}h${String(maxMinutes % 60).padStart(2, '0')}`
+    : null;
+
   return (
-    <View style={durStyles.container}>
-      <View style={durStyles.unit}>
-        <Pressable style={durStyles.arrow} onPress={() => setHours(hours + 1)} hitSlop={12}>
-          <Text style={durStyles.arrowText}>▲</Text>
-        </Pressable>
-        <Text style={durStyles.digit}>{hours}</Text>
-        <Pressable style={durStyles.arrow} onPress={() => setHours(Math.max(0, hours - 1))} hitSlop={12}>
-          <Text style={durStyles.arrowText}>▼</Text>
-        </Pressable>
-        <Text style={durStyles.unitLabel}>horas</Text>
-      </View>
+    <View>
+      <View style={durStyles.container}>
+        <View style={durStyles.unit}>
+          <Pressable style={durStyles.arrow} onPress={() => setHours(hours + 1)} hitSlop={12}>
+            <Text style={[durStyles.arrowText, atMax && durStyles.arrowDisabled]}>▲</Text>
+          </Pressable>
+          <Text style={durStyles.digit}>{hours}</Text>
+          <Pressable style={durStyles.arrow} onPress={() => setHours(Math.max(0, hours - 1))} hitSlop={12}>
+            <Text style={durStyles.arrowText}>▼</Text>
+          </Pressable>
+          <Text style={durStyles.unitLabel}>horas</Text>
+        </View>
 
-      <Text style={durStyles.colon}>h</Text>
+        <Text style={durStyles.colon}>h</Text>
 
-      <View style={durStyles.unit}>
-        <Pressable style={durStyles.arrow} onPress={() => setMins(mins + 5)} hitSlop={12}>
-          <Text style={durStyles.arrowText}>▲</Text>
-        </Pressable>
-        <Text style={durStyles.digit}>{String(mins).padStart(2, '0')}</Text>
-        <Pressable style={durStyles.arrow} onPress={() => setMins(mins - 5)} hitSlop={12}>
-          <Text style={durStyles.arrowText}>▼</Text>
-        </Pressable>
-        <Text style={durStyles.unitLabel}>minutos</Text>
+        <View style={durStyles.unit}>
+          <Pressable style={durStyles.arrow} onPress={() => setMins(mins + 5)} hitSlop={12}>
+            <Text style={[durStyles.arrowText, atMax && durStyles.arrowDisabled]}>▲</Text>
+          </Pressable>
+          <Text style={durStyles.digit}>{String(mins).padStart(2, '0')}</Text>
+          <Pressable style={durStyles.arrow} onPress={() => setMins(mins - 5)} hitSlop={12}>
+            <Text style={durStyles.arrowText}>▼</Text>
+          </Pressable>
+          <Text style={durStyles.unitLabel}>minutos</Text>
+        </View>
       </View>
+      {atMax && maxLabel ? (
+        <Text style={durStyles.maxWarning}>Máximo: tempo na cama ({maxLabel})</Text>
+      ) : null}
     </View>
   );
 }
@@ -320,5 +339,7 @@ const durStyles = StyleSheet.create({
   colon: { color: colors.textMuted, fontSize: 32, fontWeight: '700', marginBottom: 30, marginHorizontal: 4 },
   arrow: { paddingHorizontal: spacing.md, paddingVertical: 4 },
   arrowText: { color: colors.cyan, fontSize: 22, fontWeight: '700' },
+  arrowDisabled: { color: colors.border },
   unitLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
+  maxWarning: { color: colors.sunrise, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 8 },
 });

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { calculateSleepDiary, type DailyFeeling, type SleepDiaryInput, type SleepQuality } from '@diario-do-sono/core';
+import { calculateSleepDiary, minutesBetweenClockTimes, type DailyFeeling, type SleepDiaryInput, type SleepQuality } from '@diario-do-sono/core';
 import { AppBackground } from '../components/AppBackground';
 import { DurationInput, StepperInput, TimeInput } from '../components/DiaryInputs';
 import { GlassCard } from '../components/GlassCard';
@@ -51,6 +51,8 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, onCancel, onSav
   const [input, setInput] = useState<SleepDiaryInput>(editingEntry?.input ?? initialInput);
   const result = useMemo(() => calculateSleepDiary(input), [input]);
 
+  const maxPerceivedMinutes = minutesBetweenClockTimes(input.bedTime, input.finalWakeTime);
+
   const steps = [
     {
       title: 'A que horas você foi para a cama ontem?',
@@ -78,7 +80,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, onCancel, onSav
     },
     {
       title: 'Ao todo, quanto tempo acha que dormiu?',
-      content: <DurationInput minutes={input.perceivedSleepMinutes} onChange={(value) => setInput({ ...input, perceivedSleepMinutes: value })} />,
+      content: <DurationInput minutes={input.perceivedSleepMinutes} onChange={(value) => setInput({ ...input, perceivedSleepMinutes: value })} maxMinutes={maxPerceivedMinutes} />,
     },
     {
       title: 'Como foi a qualidade do sono esta noite?',

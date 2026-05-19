@@ -5,7 +5,7 @@ import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 
-export function WelcomeScreen({ onStart }: { onStart: () => void }) {
+export function WelcomeScreen({ onStart, isReturning = false }: { onStart: () => void; isReturning?: boolean }) {
   return (
     <AppBackground>
       <View style={styles.container}>
@@ -13,11 +13,13 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
         <Text style={styles.title}>DIÁRIO DO SONO</Text>
         <Text style={styles.subtitle}>Seu registro diário para entender melhor seu sono</Text>
         <GlassCard style={styles.card}>
-          <Text style={styles.cardTitle}>Bem-vindo</Text>
+          <Text style={styles.cardTitle}>{isReturning ? 'Bem-vindo de volta' : 'Bem-vindo'}</Text>
           <Text style={styles.cardText}>
-            Registre sua percepção do sono pela manhã, acompanhe médias e gere relatórios para seu médico.
+            {isReturning
+              ? 'Pronto para registrar sua noite de hoje?'
+              : 'Registre sua percepção do sono pela manhã, acompanhe médias e gere relatórios para seu médico.'}
           </Text>
-          <PrimaryButton label="Começar" onPress={onStart} />
+          <PrimaryButton label={isReturning ? 'Continuar' : 'Começar'} onPress={onStart} />
         </GlassCard>
       </View>
     </AppBackground>

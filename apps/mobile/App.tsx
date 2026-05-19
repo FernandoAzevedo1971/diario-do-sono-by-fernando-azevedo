@@ -73,7 +73,7 @@ export default function App() {
         return;
       }
 
-      await loadAccountData(storedUser);
+      await loadAccountData(storedUser, true);
     }
 
     const unsubscribe = subscribeToAuthenticatedUser((nextUser) => {
@@ -97,7 +97,7 @@ export default function App() {
     };
   }, []);
 
-  async function loadAccountData(account: AuthenticatedUser) {
+  async function loadAccountData(account: AuthenticatedUser, goToWelcome = false) {
     const [storedProfile, storedEntries] = await Promise.all([loadProfile(account), loadEntries(account)]);
     setProfile(storedProfile);
     setEntries(storedEntries);
@@ -113,7 +113,7 @@ export default function App() {
       }
     }
 
-    setRoute(storedProfile ? 'today' : 'profile');
+    setRoute(storedProfile ? (goToWelcome ? 'welcome' : 'today') : 'profile');
   }
 
   async function handleAuthenticated(nextUser: AuthenticatedUser) {
@@ -174,7 +174,16 @@ export default function App() {
     <ErrorBoundary>
       <StatusBar style="light" />
       {route === 'loading' && <SplashScreen />}
-      {route === 'welcome' && <WelcomeScreen onStart={() => setRoute(user ? 'profile' : 'auth')} />}
+      {route === 'welcome' && (
+        <WelcomeScreen
+          isReturning={!!profile}
+          onStart={() => {
+            if (!user) { setRoute('auth'); return; }
+            if (!profile) { setRoute('profile'); return; }
+            setRoute('today');
+          }}
+        />
+      )}
       {route === 'auth' && <AuthScreen onAuthenticated={handleAuthenticated} onBack={() => setRoute('welcome')} />}
       {route === 'profile' && <ProfileScreen initialEmail={user?.email ?? ''} onSave={handleSaveProfile} onBack={user ? undefined : () => setRoute('auth')} />}
       {route === 'isiPrompt' && <IsiPromptScreen onComplete={handleCompleteInitialIsi} onBack={() => setRoute('profile')} />}

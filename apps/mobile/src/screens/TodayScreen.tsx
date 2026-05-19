@@ -26,7 +26,9 @@ export function TodayScreen({ profile, entries, onNewEntry, onEditEntry, onSumma
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.greeting}>Olá, {profile.name}</Text>
-        <Text style={styles.title}>Como foi sua noite?</Text>
+        <Text style={styles.title}>
+          Como foi sua noite<Text style={styles.titleAccent}>?</Text>
+        </Text>
         <GlassCard style={styles.card}>
           {todayEntry ? (
             <>
@@ -113,17 +115,18 @@ function formatSyncStatus(syncStatus: SleepDiaryEntry['syncStatus']): string {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: spacing.lg },
-  greeting: { color: colors.textMuted, fontSize: 13 },
-  title: { color: colors.text, fontSize: 22, fontWeight: '900' },
+  content: { gap: spacing.md, paddingBottom: spacing.xl },
+  greeting: { color: colors.textMuted, fontSize: 15 },
+  title: { color: colors.text, fontSize: 32, fontWeight: '900', lineHeight: 38 },
+  titleAccent: { color: colors.cyan },
   card: { gap: spacing.sm },
-  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  cardText: { color: colors.textMuted, fontSize: 13, lineHeight: 18 },
+  cardTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  cardText: { color: colors.textMuted, fontSize: 15, lineHeight: 21 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   historyList: { gap: spacing.xs },
   historyItem: {
-    minHeight: 52,
-    borderRadius: 10,
+    minHeight: 56,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: 'rgba(255,255,255,0.05)',
@@ -134,8 +137,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.sm,
   },
-  historyDate: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  historyMeta: { color: colors.textMuted, fontSize: 11, marginTop: 2 },
+  historyDate: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  historyMeta: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   historyValues: { alignItems: 'flex-end' },
-  historyValue: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  historyValue: { color: colors.text, fontSize: 20, fontWeight: '900' },
 });

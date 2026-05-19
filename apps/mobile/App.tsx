@@ -1,13 +1,14 @@
 import React, { useEffect, useState, Component, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { loadEntries, loadProfile, saveProfile, upsertEntry } from './src/storage/diaryRepository';
+import { loadEntries, loadIsiHistory, loadProfile, saveIsiRecord, saveProfile, upsertEntry } from './src/storage/diaryRepository';
 import { cancelDailyDiaryReminder, scheduleDailyDiaryReminder } from './src/services/notificationService';
 import { getInitialAuthenticatedUser, subscribeToAuthenticatedUser } from './src/services/authService';
 import { WelcomeScreen } from './src/screens/WelcomeScreen';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { IsiPromptScreen } from './src/screens/IsiPromptScreen';
+import { IsiHistoryScreen } from './src/screens/IsiHistoryScreen';
 import { InstructionsScreen } from './src/screens/InstructionsScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
 import { DiaryWizardScreen } from './src/screens/DiaryWizardScreen';
@@ -16,9 +17,9 @@ import { GraphicSummaryScreen } from './src/screens/GraphicSummaryScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { SendToDoctorScreen } from './src/screens/SendToDoctorScreen';
 import { PastDiaryCalendarScreen } from './src/screens/PastDiaryCalendarScreen';
-import type { AuthenticatedUser, PatientProfile, SleepDiaryEntry } from './src/types';
+import type { AuthenticatedUser, IsiRecord, PatientProfile, SleepDiaryEntry } from './src/types';
 
-type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result' | 'summary' | 'report' | 'past-calendar';
+type AppRoute = 'loading' | 'welcome' | 'auth' | 'profile' | 'isiPrompt' | 'instructions' | 'today' | 'diary' | 'result' | 'summary' | 'report' | 'past-calendar' | 'isi' | 'isi-history';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -51,6 +52,7 @@ export default function App() {
   const [editingEntry, setEditingEntry] = useState<SleepDiaryEntry | null>(null);
   const [lastSavedEntry, setLastSavedEntry] = useState<SleepDiaryEntry | null>(null);
   const [pastEntryDate, setPastEntryDate] = useState<string | null>(null);
+  const [isiHistory, setIsiHistory] = useState<IsiRecord[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -98,9 +100,10 @@ export default function App() {
   }, []);
 
   async function loadAccountData(account: AuthenticatedUser, goToWelcome = false) {
-    const [storedProfile, storedEntries] = await Promise.all([loadProfile(account), loadEntries(account)]);
+    const [storedProfile, storedEntries, storedIsiHistory] = await Promise.all([loadProfile(account), loadEntries(account), loadIsiHistory(account)]);
     setProfile(storedProfile);
     setEntries(storedEntries);
+    setIsiHistory(storedIsiHistory);
 
     if (storedProfile) {
       const today = new Date().toISOString().split('T')[0];
@@ -118,9 +121,10 @@ export default function App() {
 
   async function handleAuthenticated(nextUser: AuthenticatedUser) {
     setUser(nextUser);
-    const [storedProfile, storedEntries] = await Promise.all([loadProfile(nextUser), loadEntries(nextUser)]);
+    const [storedProfile, storedEntries, storedIsiHistory] = await Promise.all([loadProfile(nextUser), loadEntries(nextUser), loadIsiHistory(nextUser)]);
     setProfile(storedProfile);
     setEntries(storedEntries);
+    setIsiHistory(storedIsiHistory);
     setRoute(storedProfile ? 'today' : 'profile');
   }
 
@@ -139,21 +143,34 @@ export default function App() {
     setRoute('isiPrompt');
   }
 
-  async function handleCompleteInitialIsi(score: number, interpretation: string) {
+  async function handleCompleteIsi(score: number, interpretation: string, severity: IsiRecord['severity']) {
     if (!user || !profile) {
       return;
     }
 
+    const now = new Date().toISOString();
+    const record: IsiRecord = { id: `isi-${now}`, score, interpretation, severity, completedAt: now, syncStatus: 'local' };
+    await saveIsiRecord(record, user);
+    setIsiHistory((prev) => [record, ...prev]);
+
     const nextProfile: PatientProfile = {
       ...profile,
-      initialIsiScore: score,
-      initialIsiInterpretation: interpretation,
-      lastIsiCompletedAt: new Date().toISOString(),
+      initialIsiScore: profile.initialIsiScore ?? score,
+      initialIsiInterpretation: profile.initialIsiInterpretation ?? interpretation,
+      lastIsiCompletedAt: now,
     };
-
     await saveProfile(nextProfile, user);
     setProfile(nextProfile);
+  }
+
+  async function handleCompleteInitialIsi(score: number, interpretation: string, severity: IsiRecord['severity']) {
+    await handleCompleteIsi(score, interpretation, severity);
     setRoute('instructions');
+  }
+
+  async function handleCompleteOnDemandIsi(score: number, interpretation: string, severity: IsiRecord['severity']) {
+    await handleCompleteIsi(score, interpretation, severity);
+    setRoute('today');
   }
 
   async function handleSaveEntry(entry: SleepDiaryEntry) {
@@ -192,6 +209,7 @@ export default function App() {
         <TodayScreen
           profile={profile}
           entries={entries}
+          isiHistory={isiHistory}
           onNewEntry={() => {
             setEditingEntry(null);
             setRoute(needsInitialIsi(profile, entries) ? 'isiPrompt' : 'diary');
@@ -202,6 +220,8 @@ export default function App() {
           }}
           onSummary={() => setRoute('summary')}
           onPastEntry={() => setRoute('past-calendar')}
+          onIsi={() => setRoute('isi')}
+          onIsiHistory={() => setRoute('isi-history')}
         />
       )}
       {route === 'past-calendar' && (
@@ -236,6 +256,8 @@ export default function App() {
         />
       )}
       {route === 'result' && lastSavedEntry && <ResultScreen entry={lastSavedEntry} entries={entries} onFinish={() => setRoute('today')} onAddAnother={() => setRoute('diary')} onSummary={() => setRoute('summary')} />}
+      {route === 'isi' && <IsiPromptScreen onComplete={handleCompleteOnDemandIsi} onBack={() => setRoute('today')} />}
+      {route === 'isi-history' && <IsiHistoryScreen isiHistory={isiHistory} onBack={() => setRoute('today')} />}
     </ErrorBoundary>
   );
 }

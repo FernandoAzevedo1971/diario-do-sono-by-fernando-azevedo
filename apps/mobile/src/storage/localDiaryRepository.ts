@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { PatientProfile, SleepDiaryEntry } from '../types';
+import type { IsiRecord, PatientProfile, SleepDiaryEntry } from '../types';
 
 const DEFAULT_ACCOUNT_ID = 'local-dev';
 
@@ -13,6 +13,10 @@ function profileKey(accountId?: string | null): string {
 
 function entriesKey(accountId?: string | null): string {
   return `diario-do-sono/${normalizeAccountId(accountId)}/entries`;
+}
+
+function isiHistoryKey(accountId?: string | null): string {
+  return `diario-do-sono/${normalizeAccountId(accountId)}/isi-history`;
 }
 
 export async function loadProfile(accountId?: string | null): Promise<PatientProfile | null> {
@@ -52,4 +56,16 @@ export async function upsertEntry(entry: SleepDiaryEntry, accountId?: string | n
   nextEntries.sort((left, right) => right.input.entryDate.localeCompare(left.input.entryDate));
   await AsyncStorage.setItem(entriesKey(accountId), JSON.stringify(nextEntries));
   return nextEntries;
+}
+
+export async function loadLocalIsiHistory(accountId?: string | null): Promise<IsiRecord[]> {
+  const raw = await AsyncStorage.getItem(isiHistoryKey(accountId));
+  return raw ? (JSON.parse(raw) as IsiRecord[]) : [];
+}
+
+export async function saveLocalIsiRecord(record: IsiRecord, accountId?: string | null): Promise<void> {
+  const current = await loadLocalIsiHistory(accountId);
+  const next = [record, ...current.filter((r) => r.id !== record.id)];
+  next.sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+  await AsyncStorage.setItem(isiHistoryKey(accountId), JSON.stringify(next));
 }

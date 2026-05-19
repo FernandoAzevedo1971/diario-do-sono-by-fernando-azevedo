@@ -28,3 +28,12 @@ export interface SleepDiaryEntry {
   syncStatus: 'local' | 'synced' | 'pending';
   version: number;
 }
+
+export interface IsiRecord {
+  id: string;
+  score: number;
+  interpretation: string;
+  severity: 'none' | 'subclinical' | 'moderate' | 'severe';
+  completedAt: string;
+  syncStatus: 'local' | 'pending' | 'synced';
+}

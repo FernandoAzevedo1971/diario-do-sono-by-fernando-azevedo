@@ -8,7 +8,7 @@ import { OptionCard } from '../components/OptionCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 
-export function IsiPromptScreen({ onComplete, onBack }: { onComplete: (score: number, interpretation: string) => void | Promise<void>; onBack?: () => void }) {
+export function IsiPromptScreen({ onComplete, onBack }: { onComplete: (score: number, interpretation: string, severity: 'none' | 'subclinical' | 'moderate' | 'severe') => void | Promise<void>; onBack?: () => void }) {
   const [answers, setAnswers] = useState<Array<number | null>>(Array(ISI_ITEMS.length).fill(null));
   const [isSaving, setIsSaving] = useState(false);
   const result = useMemo(() => calculateIsiScore(answers.filter((answer): answer is number => answer !== null)), [answers]);
@@ -22,7 +22,7 @@ export function IsiPromptScreen({ onComplete, onBack }: { onComplete: (score: nu
     setIsSaving(true);
 
     try {
-      await onComplete(result.score, result.interpretation);
+      await onComplete(result.score, result.interpretation, result.severity);
     } finally {
       setIsSaving(false);
     }

@@ -1,8 +1,8 @@
 import { collection, doc, getDoc, getDocs, orderBy, query, setDoc } from 'firebase/firestore';
 import { isFirebaseConfigured } from '../services/authService';
 import { getFirestore } from '../services/firebase';
-import type { AuthenticatedUser, PatientProfile, SleepDiaryEntry } from '../types';
-import { loadEntries as loadLocalEntries, loadProfile as loadLocalProfile, saveEntries as saveLocalEntries, saveProfile as saveLocalProfile, upsertEntry as upsertLocalEntry } from './localDiaryRepository';
+import type { AuthenticatedUser, IsiRecord, PatientProfile, SleepDiaryEntry } from '../types';
+import { loadEntries as loadLocalEntries, loadLocalIsiHistory, loadProfile as loadLocalProfile, saveEntries as saveLocalEntries, saveLocalIsiRecord, saveProfile as saveLocalProfile, upsertEntry as upsertLocalEntry } from './localDiaryRepository';
 
 const PROFILE_DOCUMENT_ID = 'main';
 
@@ -110,4 +110,35 @@ async function saveRemoteEntry(entry: SleepDiaryEntry, user: AuthenticatedUser):
   const entryRef = doc(getFirestore(), ...userDocumentPath(user), 'sleepDiaryEntries', entry.id);
   await setDoc(entryRef, stripUndefined({ ...syncedEntry, userId: user.uid }), { merge: true });
   return syncedEntry;
+}
+
+export async function loadIsiHistory(user: AuthenticatedUser): Promise<IsiRecord[]> {
+  if (!shouldUseRemote(user)) {
+    return loadLocalIsiHistory(user.uid);
+  }
+
+  try {
+    const historyRef = collection(getFirestore(), ...userDocumentPath(user), 'isiHistory');
+    const snapshot = await getDocs(query(historyRef, orderBy('completedAt', 'desc')));
+    const records = snapshot.docs.map((d) => d.data() as IsiRecord);
+    await Promise.all(records.map((r) => saveLocalIsiRecord(r, user.uid)));
+    return records;
+  } catch {
+    return loadLocalIsiHistory(user.uid);
+  }
+}
+
+export async function saveIsiRecord(record: IsiRecord, user: AuthenticatedUser): Promise<void> {
+  await saveLocalIsiRecord(record, user.uid);
+
+  if (!shouldUseRemote(user)) {
+    return;
+  }
+
+  try {
+    const recordRef = doc(getFirestore(), ...userDocumentPath(user), 'isiHistory', record.id);
+    await setDoc(recordRef, stripUndefined({ ...record, userId: user.uid, syncStatus: 'synced' }), { merge: true });
+  } catch {
+    await saveLocalIsiRecord({ ...record, syncStatus: 'pending' }, user.uid);
+  }
 }

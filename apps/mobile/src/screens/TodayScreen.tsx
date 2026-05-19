@@ -6,21 +6,37 @@ import { GlassCard } from '../components/GlassCard';
 import { MetricCard } from '../components/MetricCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
-import type { PatientProfile, SleepDiaryEntry } from '../types';
+import type { IsiRecord, PatientProfile, SleepDiaryEntry } from '../types';
 
-export function TodayScreen({ profile, entries, onNewEntry, onEditEntry, onSummary, onPastEntry }: {
+const ISI_SEVERITY_COLOR: Record<IsiRecord['severity'], string> = {
+  none: colors.success,
+  subclinical: colors.sunrise,
+  moderate: '#F5A623',
+  severe: colors.danger,
+};
+
+function formatIsiDate(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
+export function TodayScreen({ profile, entries, isiHistory, onNewEntry, onEditEntry, onSummary, onPastEntry, onIsi, onIsiHistory }: {
   profile: PatientProfile;
   entries: SleepDiaryEntry[];
+  isiHistory: IsiRecord[];
   onNewEntry: () => void;
   onEditEntry: (entry: SleepDiaryEntry) => void;
   onSummary: () => void;
   onPastEntry: () => void;
+  onIsi: () => void;
+  onIsiHistory: () => void;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const todayEntry = entries.find((entry) => entry.input.entryDate === today);
   const latestEntry = todayEntry ?? entries[0];
   const averages = calculateSleepDiaryAverages(entries.map((entry) => ({ input: entry.input, metrics: entry.metrics })));
   const recentEntries = entries.slice(0, 5);
+  const latestIsi = isiHistory[0] ?? null;
 
   return (
     <AppBackground>
@@ -47,6 +63,25 @@ export function TodayScreen({ profile, entries, onNewEntry, onEditEntry, onSumma
 
         {entries.length > 0 ? (
           <PrimaryButton label="Resumo Gráfico" onPress={onSummary} />
+        ) : null}
+
+        <PrimaryButton label="Preencher IGI" variant="secondary" onPress={onIsi} />
+
+        {isiHistory.length > 0 ? (
+          <PrimaryButton label="Histórico do IGI" variant="secondary" onPress={onIsiHistory} />
+        ) : null}
+
+        {latestIsi ? (
+          <GlassCard style={styles.card}>
+            <Text style={styles.cardTitle}>Último IGI</Text>
+            <View style={styles.isiRow}>
+              <Text style={[styles.isiScore, { color: ISI_SEVERITY_COLOR[latestIsi.severity] }]}>{latestIsi.score}</Text>
+              <View style={styles.isiInfo}>
+                <Text style={[styles.isiInterpretation, { color: ISI_SEVERITY_COLOR[latestIsi.severity] }]}>{latestIsi.interpretation}</Text>
+                <Text style={styles.historyMeta}>{formatIsiDate(latestIsi.completedAt)}</Text>
+              </View>
+            </View>
+          </GlassCard>
         ) : null}
 
         {latestEntry ? (
@@ -119,6 +154,10 @@ const styles = StyleSheet.create({
   card: { gap: spacing.sm },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   cardText: { color: colors.textMuted, fontSize: 15, lineHeight: 21 },
+  isiRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  isiScore: { fontSize: 36, fontWeight: '900', minWidth: 52, textAlign: 'center' },
+  isiInfo: { flex: 1, gap: 3 },
+  isiInterpretation: { fontSize: 13, fontWeight: '700', lineHeight: 18 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   historyList: { gap: spacing.xs },
   historyItem: {

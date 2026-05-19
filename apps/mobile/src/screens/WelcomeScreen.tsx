@@ -1,14 +1,34 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { AppBackground } from '../components/AppBackground';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 
 export function WelcomeScreen({ onStart, isReturning = false }: { onStart: () => void; isReturning?: boolean }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(24)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 1400,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 1200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   return (
     <AppBackground>
-      <View style={styles.container}>
+      <Animated.View style={[styles.container, { opacity, transform: [{ translateY }] }]}>
         <Text style={styles.moon}>☾</Text>
         <Text style={styles.title}>DIÁRIO DO SONO</Text>
         <Text style={styles.subtitle}>Seu registro diário para entender melhor seu sono</Text>
@@ -21,7 +41,7 @@ export function WelcomeScreen({ onStart, isReturning = false }: { onStart: () =>
           </Text>
           <PrimaryButton label={isReturning ? 'Continuar' : 'Começar'} onPress={onStart} />
         </GlassCard>
-      </View>
+      </Animated.View>
     </AppBackground>
   );
 }

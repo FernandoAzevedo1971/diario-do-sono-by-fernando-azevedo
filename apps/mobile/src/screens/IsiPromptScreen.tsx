@@ -2,12 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { calculateIsiScore, ISI_ITEMS } from '@diario-do-sono/core';
 import { AppBackground } from '../components/AppBackground';
+import { BackArrow } from '../components/BackArrow';
 import { GlassCard } from '../components/GlassCard';
 import { OptionCard } from '../components/OptionCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 
-export function IsiPromptScreen({ onComplete }: { onComplete: (score: number, interpretation: string) => void | Promise<void> }) {
+export function IsiPromptScreen({ onComplete, onBack }: { onComplete: (score: number, interpretation: string) => void | Promise<void>; onBack?: () => void }) {
   const [answers, setAnswers] = useState<Array<number | null>>(Array(ISI_ITEMS.length).fill(null));
   const [isSaving, setIsSaving] = useState(false);
   const result = useMemo(() => calculateIsiScore(answers.filter((answer): answer is number => answer !== null)), [answers]);
@@ -30,6 +31,7 @@ export function IsiPromptScreen({ onComplete }: { onComplete: (score: number, in
   return (
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content}>
+        {onBack ? <BackArrow onPress={onBack} /> : null}
         <Text style={styles.title}>Indice de Gravidade de Insonia</Text>
         <Text style={styles.subtitle}>Responda todos os itens para iniciar o primeiro preenchimento do diario.</Text>
         {ISI_ITEMS.map((item, index) => (

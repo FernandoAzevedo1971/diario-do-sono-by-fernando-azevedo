@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppBackground } from '../components/AppBackground';
+import { BackArrow } from '../components/BackArrow';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
@@ -61,6 +62,7 @@ export function PastDiaryCalendarScreen({
   return (
     <AppBackground>
       <View style={styles.container}>
+        <BackArrow onPress={onBack} />
         <Text style={styles.title}>Dias anteriores</Text>
         <Text style={styles.subtitle}>Selecione o dia que deseja preencher</Text>
 

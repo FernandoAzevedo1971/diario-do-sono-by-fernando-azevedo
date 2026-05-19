@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { AppBackground } from '../components/AppBackground';
+import { BackArrow } from '../components/BackArrow';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { generateSleepDiaryPdf, generateSleepDiaryPdfNative, type ReportType } from '../services/pdfService';
@@ -122,11 +123,7 @@ export function SendToDoctorScreen({ profile, entries, onBack }: SendToDoctorScr
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backLabel}>← Voltar</Text>
-        </Pressable>
-
+        <BackArrow onPress={onBack} />
         <Text style={styles.title}>Enviar ao Médico</Text>
         <Text style={styles.subtitle}>
           Gera um PDF do diário e compartilha com seu médico
@@ -299,17 +296,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
-  },
-
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: spacing.xs,
-    paddingRight: spacing.sm,
-  },
-  backLabel: {
-    color: colors.primaryLight,
-    fontSize: 15,
-    fontWeight: '600',
   },
 
   title: {

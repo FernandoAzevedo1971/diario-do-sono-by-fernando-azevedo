@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppBackground } from '../components/AppBackground';
+import { BackArrow } from '../components/BackArrow';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { isFirebaseConfigured, loginWithEmail, registerWithEmail, requestPasswordReset } from '../services/authService';
 import { colors, spacing } from '../theme/tokens';
 import type { AuthenticatedUser } from '../types';
 
-export function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AuthenticatedUser) => void }) {
+export function AuthScreen({ onAuthenticated, onBack }: { onAuthenticated: (user: AuthenticatedUser) => void; onBack?: () => void }) {
   const [mode, setMode] = useState<'login' | 'register'>('register');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,6 +67,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: Authen
   return (
     <AppBackground>
       <View style={styles.container}>
+        {onBack ? <BackArrow onPress={onBack} /> : null}
         <Text style={styles.title}>{mode === 'register' ? 'Criar conta' : 'Entrar'}</Text>
         <Text style={styles.subtitle}>Use email e senha para proteger seus registros.</Text>
         <GlassCard style={styles.card}>

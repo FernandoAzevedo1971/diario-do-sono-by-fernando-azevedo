@@ -15,8 +15,7 @@ export async function scheduleDailyDiaryReminder(usualOutOfBedTime: string): Pro
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   const [hours, minutes] = usualOutOfBedTime.split(':').map(Number);
-  const triggerDate = new Date();
-  triggerDate.setHours(hours + 1, minutes, 0, 0);
+  const reminderHour = (hours + 1) % 24;
 
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -25,8 +24,8 @@ export async function scheduleDailyDiaryReminder(usualOutOfBedTime: string): Pro
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: triggerDate.getHours(),
-      minute: triggerDate.getMinutes(),
+      hour: reminderHour,
+      minute: minutes,
     },
   });
 }

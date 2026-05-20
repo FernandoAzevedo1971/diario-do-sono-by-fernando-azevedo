@@ -11,6 +11,7 @@ export interface PatientProfile {
   initialIsiInterpretation?: string | null;
   lastIsiCompletedAt?: string | null;
   lastIsiPromptedAt?: string | null;
+  lastReminderEmailSentAt?: string | null;
 }
 
 export interface AuthenticatedUser {

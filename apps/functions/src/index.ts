@@ -9,3 +9,5 @@ export const requestSleepDiaryPdf = onCall(async () => {
     message: 'PDF generation will be implemented in phase 9.',
   };
 });
+
+export { sendDiaryReminders } from './reminders.js';

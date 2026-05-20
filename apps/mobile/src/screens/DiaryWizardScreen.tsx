@@ -62,7 +62,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
   const steps = [
     {
       title: 'A que horas você foi para a cama ontem?',
-      content: <TimeInput value={input.bedTime} onChange={(value) => setInput({ ...input, bedTime: value })} rangeStart="18:00" rangeEnd="02:00" />,
+      content: <TimeInput value={input.bedTime} onChange={(value) => { const newMax = minutesBetweenClockTimes(value, input.finalWakeTime); setInput({ ...input, bedTime: value, perceivedSleepMinutes: Math.min(input.perceivedSleepMinutes, newMax) }); }} rangeStart="18:00" rangeEnd="02:00" />,
     },
     {
       title: 'Quanto tempo estima que demorou para dormir?',
@@ -78,7 +78,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
     },
     {
       title: 'A que horas você acordou definitivamente?',
-      content: <TimeInput value={input.finalWakeTime} onChange={(value) => setInput({ ...input, finalWakeTime: value })} rangeStart="04:00" rangeEnd="14:00" />,
+      content: <TimeInput value={input.finalWakeTime} onChange={(value) => { const newMax = minutesBetweenClockTimes(input.bedTime, value); setInput({ ...input, finalWakeTime: value, perceivedSleepMinutes: Math.min(input.perceivedSleepMinutes, newMax) }); }} rangeStart="04:00" rangeEnd="14:00" />,
     },
     {
       title: 'Quanto tempo demorou para sair da cama?',
@@ -275,8 +275,8 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
             finalWakeTime={input.finalWakeTime}
             outOfBedLatencyMinutes={input.outOfBedLatencyMinutes}
             outOfBedTime={result.isValid ? result.metrics.outOfBedTime : input.finalWakeTime}
-            onChangeBedTime={(v) => setInput({ ...input, bedTime: v })}
-            onChangeFinalWakeTime={(v) => setInput({ ...input, finalWakeTime: v })}
+            onChangeBedTime={(v) => { const newMax = minutesBetweenClockTimes(v, input.finalWakeTime); setInput({ ...input, bedTime: v, perceivedSleepMinutes: Math.min(input.perceivedSleepMinutes, newMax) }); }}
+            onChangeFinalWakeTime={(v) => { const newMax = minutesBetweenClockTimes(input.bedTime, v); setInput({ ...input, finalWakeTime: v, perceivedSleepMinutes: Math.min(input.perceivedSleepMinutes, newMax) }); }}
           />
         </GlassCard>
 

@@ -73,6 +73,10 @@ function fmtFeeling(f: string | undefined | null): string {
   return '—';
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 
 const CSS = `
@@ -158,6 +162,15 @@ const CSS = `
   .page-break { page-break-after: always; }
   .footer { margin-top: 16px; padding-top: 7px; border-top: 1px solid #ddd;
             text-align: center; font-size: 8px; color: #aaa; }
+
+  /* ── Observations ── */
+  .obs-section { margin-top: 6px; }
+  .obs-row { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid #eee; font-size: 8.5px; }
+  .obs-date-col { width: 28px; flex-shrink: 0; color: #888; font-weight: 700; padding-top: 1px; }
+  .obs-content { flex: 1; }
+  .obs-label { font-size: 7.5px; color: #999; text-transform: uppercase; letter-spacing: 0.3px; }
+  .obs-text { color: #333; }
+  .obs-item { margin-bottom: 2px; }
 `;
 
 // ─── transposed data table ────────────────────────────────────────────────────
@@ -175,6 +188,12 @@ const INPUT_ROWS: TransRow[] = [
   { label: 'Qualidade sono', getValue: (e) => fmtQuality(e.input.sleepQuality) },
   { label: 'Ao acordar',     getValue: (e) => fmtFeeling(e.input.morningFeeling) },
   { label: 'Durante o dia',  getValue: (e) => fmtFeeling(e.input.daytimeFeeling) },
+  { label: 'Medicação sono', getValue: (e) => {
+    const m = e.input.sleepMedication;
+    if (!m?.used) return '—';
+    const parts = [m.name, m.dose, m.time ? `(${m.time})` : null].filter(Boolean);
+    return parts.length ? parts.join(' ') : 'Sim';
+  }},
 ];
 
 const CALC_ROWS: TransRow[] = [
@@ -383,6 +402,32 @@ function barChartHtml(entries: SleepDiaryEntry[]): string {
   return `<div class="chart-grid">${charts.join('')}</div>`;
 }
 
+// ─── observations section ─────────────────────────────────────────────────────
+
+function observationsSectionHtml(entries: SleepDiaryEntry[]): string {
+  const relevant = entries.filter(e =>
+    e.input.nightObservations?.trim() || e.input.dayObservations?.trim()
+  );
+  if (relevant.length === 0) return '';
+
+  const rowsHtml = relevant.map(e => {
+    const parts: string[] = [];
+    if (e.input.nightObservations?.trim()) {
+      parts.push(
+        `<div class="obs-item"><span class="obs-label">Noite: </span><span class="obs-text">${escapeHtml(e.input.nightObservations.trim())}</span></div>`
+      );
+    }
+    if (e.input.dayObservations?.trim()) {
+      parts.push(
+        `<div class="obs-item"><span class="obs-label">Dia: </span><span class="obs-text">${escapeHtml(e.input.dayObservations.trim())}</span></div>`
+      );
+    }
+    return `<div class="obs-row"><div class="obs-date-col">${dd(e.input.entryDate)}</div><div class="obs-content">${parts.join('')}</div></div>`;
+  }).join('');
+
+  return `<h2>Observações</h2><div class="obs-section">${rowsHtml}</div>`;
+}
+
 // ─── public API ───────────────────────────────────────────────────────────────
 
 function headerBlock(profile: PatientProfile, chrono: SleepDiaryEntry[], patientAge: string): string {
@@ -420,6 +465,7 @@ export function buildReportHtml(
       <h2>Médias do período (${avg.daysCount} ${avg.daysCount === 1 ? 'noite' : 'noites'})</h2>
       ${metricsGrid(avg)}
       ${isiBlock(profile)}
+      ${observationsSectionHtml(chrono)}
 
       <div class="page-break"></div>
 
@@ -435,6 +481,7 @@ export function buildReportHtml(
     // Pág n+3 — gráficos de evolução
     body = `
       ${transposedTableSections(chrono)}
+      ${observationsSectionHtml(chrono)}
 
       <div class="page-break"></div>
 

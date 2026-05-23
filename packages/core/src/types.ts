@@ -36,6 +36,12 @@ export interface SleepDiaryInput {
   } | null;
   nightObservations?: string | null;
   dayObservations?: string | null;
+  awakeningDetails?: AwakeningDetail[] | null;
+}
+
+export interface AwakeningDetail {
+  time?: string | null;
+  durationMinutes?: number | null;
 }
 
 export interface SleepDiaryMetrics {

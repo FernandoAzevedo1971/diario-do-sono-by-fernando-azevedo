@@ -60,6 +60,11 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
 
   const maxPerceivedMinutes = minutesBetweenClockTimes(input.bedTime, input.finalWakeTime);
 
+  const allDurationsProvided =
+    input.nightAwakeningsCount > 0 &&
+    (input.awakeningDetails?.length ?? 0) >= input.nightAwakeningsCount &&
+    input.awakeningDetails!.slice(0, input.nightAwakeningsCount).every(a => (a.durationMinutes ?? 0) > 0);
+
   const steps = [
     {
       title: 'A que horas você foi para a cama ontem?',
@@ -95,7 +100,8 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
                   const cur = input.awakeningDetails ?? Array.from({ length: input.nightAwakeningsCount }, () => ({ time: null as string | null, durationMinutes: null as number | null }));
                   const next = [...cur];
                   next[i] = { ...next[i], ...patch };
-                  setInput({ ...input, awakeningDetails: next });
+                  const sumWaso = next.slice(0, input.nightAwakeningsCount).reduce((s, a) => s + (a.durationMinutes ?? 0), 0);
+                  setInput({ ...input, awakeningDetails: next, wasoMinutes: sumWaso > 0 ? sumWaso : input.wasoMinutes });
                 };
                 return (
                   <View key={i} style={styles.awakeningRow}>
@@ -120,10 +126,10 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
         </View>
       ),
     },
-    {
+    ...(!allDurationsProvided ? [{
       title: 'No total, quanto tempo ficou acordado durante a noite?',
       content: <StepperInput value={input.wasoMinutes} onChange={(value) => setInput({ ...input, wasoMinutes: value })} suffix="minutos" step={5} />,
-    },
+    }] : []),
     {
       title: 'A que horas você acordou definitivamente?',
       content: <TimeInput value={input.finalWakeTime} onChange={(value) => { const newMax = minutesBetweenClockTimes(input.bedTime, value); setInput({ ...input, finalWakeTime: value, perceivedSleepMinutes: Math.min(input.perceivedSleepMinutes, newMax) }); }} rangeStart="04:00" rangeEnd="14:00" />,

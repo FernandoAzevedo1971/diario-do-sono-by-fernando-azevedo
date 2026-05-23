@@ -474,19 +474,19 @@ export function buildReportHtml(
   let body: string;
 
   if (reportType === 'consolidated') {
-    // Pág 1 — médias + paciente + IGI
-    // Pág 2 — actigrafia
+    // Pág 1 — actigrafia
+    // Pág 2 — médias + paciente + IGI
     body = `
       ${headerBlock(profile, chrono, patientAge)}
+      <h2>Linha do Tempo do Sono</h2>
+      ${actTimelineHtml(chrono)}
+
+      <div class="page-break"></div>
+
       <h2>Médias do período (${avg.daysCount} ${avg.daysCount === 1 ? 'noite' : 'noites'})</h2>
       ${metricsGrid(avg)}
       ${isiBlock(profile)}
       ${observationsSectionHtml(chrono)}
-
-      <div class="page-break"></div>
-
-      <h2>Linha do Tempo do Sono</h2>
-      ${actTimelineHtml(chrono)}
 
       ${footer}
     `;

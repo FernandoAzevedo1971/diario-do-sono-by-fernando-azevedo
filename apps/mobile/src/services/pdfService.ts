@@ -1,4 +1,5 @@
 import { calculateSleepDiaryAverages, formatDuration, minutesBetweenClockTimes } from '@diario-do-sono/core';
+import type { AwakeningDetail } from '@diario-do-sono/core';
 import type { PatientProfile, SleepDiaryEntry } from '../types';
 
 // ─── page constants ───────────────────────────────────────────────────────────
@@ -94,6 +95,12 @@ function fmtFeeling(f: string | undefined | null): string {
   return '—';
 }
 
+function truncate(text: string | null | undefined, maxLen: number): string {
+  if (!text?.trim()) return '—';
+  const t = text.trim();
+  return t.length > maxLen ? t.slice(0, maxLen - 1) + '…' : t;
+}
+
 const TRANS_INPUT_ROWS: TransRowDef[] = [
   { label: 'Hora deitar',    getValue: (e) => e.input.bedTime },
   { label: 'Latência (min)', getValue: (e) => String(e.input.sleepLatencyMinutes) },
@@ -105,6 +112,13 @@ const TRANS_INPUT_ROWS: TransRowDef[] = [
   { label: 'Qualidade sono', getValue: (e) => fmtQuality(e.input.sleepQuality) },
   { label: 'Ao acordar',     getValue: (e) => fmtFeeling(e.input.morningFeeling) },
   { label: 'Durante o dia',  getValue: (e) => fmtFeeling(e.input.daytimeFeeling) },
+  { label: 'Medicação sono', getValue: (e) => {
+    const m = e.input.sleepMedication;
+    if (!m?.used) return '—';
+    return truncate([m.name, m.dose].filter(Boolean).join(' ') || 'Sim', 18);
+  }},
+  { label: 'Obs. noite',    getValue: (e) => truncate(e.input.nightObservations, 18) },
+  { label: 'Obs. dia',      getValue: (e) => truncate(e.input.dayObservations, 18) },
 ];
 
 const TRANS_CALC_ROWS: TransRowDef[] = [
@@ -138,6 +152,7 @@ function buildSegments(
   finalWakeOffset: number,
   outOfBedLatencyMinutes: number,
   outOfBedOffset: number,
+  awakeningDetails?: AwakeningDetail[] | null,
 ): SegmentDef[] {
   const segs: SegmentDef[] = [];
 
@@ -149,18 +164,35 @@ function buildSegments(
 
   const sleepPeriod = clamp(finalWakeOffset - bedOffset - lis, 0, RANGE_TOTAL_MINUTES);
   if (sleepPeriod > 0) {
-    const capWaso = clamp(wasoMinutes, 0, sleepPeriod);
-    if (nightAwakeningsCount > 0 && capWaso > 0) {
-      const wasoEach = capWaso / nightAwakeningsCount;
-      const netSleep = sleepPeriod - capWaso;
-      const seg = netSleep / (nightAwakeningsCount + 1);
-      for (let i = 0; i < nightAwakeningsCount; i++) {
-        if (seg > 0.5) segs.push({ key: `sleep-${i}`, flex: seg, color: SEG_COLOR.sleep });
-        segs.push({ key: `waso-${i}`, flex: wasoEach, color: SEG_COLOR.waso });
-      }
-      if (seg > 0.5) segs.push({ key: 'sleep-last', flex: seg, color: SEG_COLOR.sleep });
+    const hasExactTimes = awakeningDetails && awakeningDetails.length > 0 && awakeningDetails.every(a => a.time);
+    if (hasExactTimes) {
+      const sorted = [...awakeningDetails!].sort(
+        (a, b) => offsetFromRangeStart(a.time!) - offsetFromRangeStart(b.time!),
+      );
+      const eachWaso = wasoMinutes / sorted.length;
+      let cursor = bedOffset + lis;
+      sorted.forEach((awk, i) => {
+        const awkOff = clamp(offsetFromRangeStart(awk.time!), cursor, finalWakeOffset);
+        const dur = clamp(awk.durationMinutes ?? eachWaso, 1, finalWakeOffset - awkOff);
+        if (awkOff - cursor > 0.5) segs.push({ key: `sleep-${i}`, flex: awkOff - cursor, color: SEG_COLOR.sleep });
+        segs.push({ key: `waso-${i}`, flex: dur, color: null });
+        cursor = awkOff + dur;
+      });
+      if (finalWakeOffset - cursor > 0.5) segs.push({ key: 'sleep-last', flex: finalWakeOffset - cursor, color: SEG_COLOR.sleep });
     } else {
-      segs.push({ key: 'sleep', flex: sleepPeriod, color: SEG_COLOR.sleep });
+      const capWaso = clamp(wasoMinutes, 0, sleepPeriod);
+      if (nightAwakeningsCount > 0 && capWaso > 0) {
+        const wasoEach = capWaso / nightAwakeningsCount;
+        const netSleep = sleepPeriod - capWaso;
+        const seg = netSleep / (nightAwakeningsCount + 1);
+        for (let i = 0; i < nightAwakeningsCount; i++) {
+          if (seg > 0.5) segs.push({ key: `sleep-${i}`, flex: seg, color: SEG_COLOR.sleep });
+          segs.push({ key: `waso-${i}`, flex: wasoEach, color: null });
+        }
+        if (seg > 0.5) segs.push({ key: 'sleep-last', flex: seg, color: SEG_COLOR.sleep });
+      } else {
+        segs.push({ key: 'sleep', flex: sleepPeriod, color: SEG_COLOR.sleep });
+      }
     }
   }
 
@@ -353,6 +385,7 @@ function drawTimelinePage(
     const segments = buildSegments(
       bedOffset, entry.input.sleepLatencyMinutes, entry.input.nightAwakeningsCount,
       entry.input.wasoMinutes, wakeOffset, entry.input.outOfBedLatencyMinutes, outOfBedOffset,
+      entry.input.awakeningDetails,
     );
 
     let totalFlex = segments.reduce((s, sg) => s + sg.flex, 0);
@@ -377,10 +410,10 @@ function drawTimelinePage(
 
   y += 4;
   const legendItems: Array<{ color: [number, number, number]; label: string }> = [
-    { color: SEG_COLOR.latency, label: 'Latência' },
-    { color: SEG_COLOR.sleep,   label: 'Sono' },
-    { color: SEG_COLOR.waso,    label: 'WASO' },
-    { color: SEG_COLOR.inertia, label: 'Inércia' },
+    { color: SEG_COLOR.latency,               label: 'Latência' },
+    { color: SEG_COLOR.sleep,                 label: 'Sono' },
+    { color: [210, 210, 220] as [number, number, number], label: 'Acordado' },
+    { color: SEG_COLOR.inertia,               label: 'Inércia' },
   ];
   let lx = MARGIN;
   for (const item of legendItems) {
@@ -664,13 +697,13 @@ export async function generateSleepDiaryPdf(
   );
 
   if (reportType === 'consolidated') {
-    // Pág 1 — médias + paciente + IGI
-    drawAveragesPage(doc, profile, chronological, averages);
-    drawFooter(doc, 1);
+    // Pág 1 — actigrafia (últimas 14 noites)
+    drawTimelinePage(doc, chronological.slice(-14), 1);
 
-    // Pág 2 — actigrafia (últimas 14 noites)
+    // Pág 2 — médias + paciente + IGI
     doc.addPage();
-    drawTimelinePage(doc, chronological.slice(-14), doc.getNumberOfPages());
+    drawAveragesPage(doc, profile, chronological, averages);
+    drawFooter(doc, doc.getNumberOfPages());
 
   } else {
     // Pág 1+: tabela transposta (7 dias por página)

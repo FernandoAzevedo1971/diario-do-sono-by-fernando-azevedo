@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { calculateSleepDiary, minutesBetweenClockTimes, type DailyFeeling, type SleepDiaryInput, type SleepQuality } from '@diario-do-sono/core';
+import { calculateSleepDiary, minutesBetweenClockTimes, type AwakeningDetail, type DailyFeeling, type SleepDiaryInput, type SleepQuality } from '@diario-do-sono/core';
 import { AppBackground } from '../components/AppBackground';
 import { BackArrow } from '../components/BackArrow';
 import { DurationInput, StepperInput, TimeInput } from '../components/DiaryInputs';
@@ -43,6 +43,7 @@ function buildInitialInput(initialDate?: string): SleepDiaryInput {
   sleepMedication: { used: false, name: null, dose: null, time: null },
   nightObservations: null,
   dayObservations: null,
+  awakeningDetails: null,
   };
 }
 
@@ -70,7 +71,54 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
     },
     {
       title: 'Quantas vezes você acordou durante a noite?',
-      content: <StepperInput value={input.nightAwakeningsCount} onChange={(value) => setInput({ ...input, nightAwakeningsCount: value })} suffix="vezes" step={1} />,
+      content: (
+        <View style={styles.optionalGroup}>
+          <StepperInput
+            value={input.nightAwakeningsCount}
+            onChange={(value) => {
+              const cur = input.awakeningDetails ?? [];
+              const next: AwakeningDetail[] | null = value === 0 ? null
+                : value > cur.length
+                  ? [...cur, ...Array.from({ length: value - cur.length }, () => ({ time: null, durationMinutes: null }))]
+                  : cur.slice(0, value);
+              setInput({ ...input, nightAwakeningsCount: value, awakeningDetails: next });
+            }}
+            suffix="vezes"
+            step={1}
+          />
+          {input.nightAwakeningsCount > 0 ? (
+            <View style={styles.awakeningDetailsSection}>
+              <Text style={styles.fieldLabel}>Horários dos despertares (opcional)</Text>
+              {Array.from({ length: input.nightAwakeningsCount }, (_, i) => {
+                const det = input.awakeningDetails?.[i];
+                const updateDetail = (patch: Partial<AwakeningDetail>) => {
+                  const cur = input.awakeningDetails ?? Array.from({ length: input.nightAwakeningsCount }, () => ({ time: null as string | null, durationMinutes: null as number | null }));
+                  const next = [...cur];
+                  next[i] = { ...next[i], ...patch };
+                  setInput({ ...input, awakeningDetails: next });
+                };
+                return (
+                  <View key={i} style={styles.awakeningRow}>
+                    <Text style={styles.awakeningLabel}>Despertar {i + 1}</Text>
+                    <TimeInput
+                      value={det?.time ?? '03:00'}
+                      onChange={(v) => updateDetail({ time: v })}
+                      rangeStart="22:00"
+                      rangeEnd="09:00"
+                    />
+                    <StepperInput
+                      value={det?.durationMinutes ?? 0}
+                      onChange={(v) => updateDetail({ durationMinutes: v || null })}
+                      suffix="min acordado"
+                      step={5}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+      ),
     },
     {
       title: 'No total, quanto tempo ficou acordado durante a noite?',
@@ -275,6 +323,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
             finalWakeTime={input.finalWakeTime}
             outOfBedLatencyMinutes={input.outOfBedLatencyMinutes}
             outOfBedTime={result.isValid ? result.metrics.outOfBedTime : input.finalWakeTime}
+            awakeningDetails={input.awakeningDetails}
             onChangeBedTime={(v) => { const newMax = minutesBetweenClockTimes(v, input.finalWakeTime); setInput({ ...input, bedTime: v, perceivedSleepMinutes: Math.min(input.perceivedSleepMinutes, newMax) }); }}
             onChangeFinalWakeTime={(v) => { const newMax = minutesBetweenClockTimes(input.bedTime, v); setInput({ ...input, finalWakeTime: v, perceivedSleepMinutes: Math.min(input.perceivedSleepMinutes, newMax) }); }}
           />
@@ -342,4 +391,7 @@ const styles = StyleSheet.create({
   warningCard: { gap: spacing.sm },
   warning: { color: colors.sunrise },
   error: { color: colors.danger },
+  awakeningDetailsSection: { gap: spacing.md, paddingTop: spacing.sm },
+  awakeningRow: { gap: spacing.sm, paddingBottom: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  awakeningLabel: { color: colors.cyan, fontSize: 13, fontWeight: '700' },
 });

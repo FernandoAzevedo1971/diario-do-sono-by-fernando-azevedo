@@ -11,7 +11,6 @@ const AXIS_TICKS      = [18, 20, 22, 0, 2, 4, 6, 8, 10, 12, 14];
 const SEG_COLOR = {
   latency: '#8B7FE8',
   sleep:   '#3ECFB0',
-  waso:    '#FF8C42',
   inertia: '#F8C86A',
 };
 
@@ -288,20 +287,35 @@ function buildSegments(e: SleepDiaryEntry): Array<{ left: number; width: number;
 
   const sleepSpan = wakeOff - bedOff - lis;
   if (sleepSpan > 0) {
-    const n = e.input.nightAwakeningsCount;
-    const capWaso = clamp(e.input.wasoMinutes, 0, sleepSpan);
-    if (n > 0 && capWaso > 0) {
-      const wasoEach = capWaso / n;
-      const netSleep = sleepSpan - capWaso;
-      const seg = netSleep / (n + 1);
+    const { nightAwakeningsCount: n, wasoMinutes, awakeningDetails } = e.input;
+    const hasExactTimes = awakeningDetails && awakeningDetails.length > 0 && awakeningDetails.every(a => a.time);
+    if (hasExactTimes) {
+      const sorted = [...awakeningDetails!].sort((a, b) => offsetFromRange(a.time!) - offsetFromRange(b.time!));
+      const eachWaso = wasoMinutes / sorted.length;
       let cur = bedOff + lis;
-      for (let i = 0; i < n; i++) {
-        if (seg > 0.5) { segs.push({ left: cur, width: seg, color: SEG_COLOR.sleep }); cur += seg; }
-        segs.push({ left: cur, width: wasoEach, color: SEG_COLOR.waso }); cur += wasoEach;
-      }
-      if (seg > 0.5) segs.push({ left: cur, width: seg, color: SEG_COLOR.sleep });
+      sorted.forEach((awk, i) => {
+        const awkOff = clamp(offsetFromRange(awk.time!), cur, wakeOff);
+        const dur = clamp(awk.durationMinutes ?? eachWaso, 1, wakeOff - awkOff);
+        if (awkOff - cur > 0.5) { segs.push({ left: cur, width: awkOff - cur, color: SEG_COLOR.sleep }); }
+        segs.push({ left: awkOff, width: dur, color: 'transparent' });
+        cur = awkOff + dur;
+      });
+      if (wakeOff - cur > 0.5) segs.push({ left: cur, width: wakeOff - cur, color: SEG_COLOR.sleep });
     } else {
-      segs.push({ left: bedOff + lis, width: sleepSpan, color: SEG_COLOR.sleep });
+      const capWaso = clamp(wasoMinutes, 0, sleepSpan);
+      if (n > 0 && capWaso > 0) {
+        const wasoEach = capWaso / n;
+        const netSleep = sleepSpan - capWaso;
+        const seg = netSleep / (n + 1);
+        let cur = bedOff + lis;
+        for (let i = 0; i < n; i++) {
+          if (seg > 0.5) { segs.push({ left: cur, width: seg, color: SEG_COLOR.sleep }); cur += seg; }
+          segs.push({ left: cur, width: wasoEach, color: 'transparent' }); cur += wasoEach;
+        }
+        if (seg > 0.5) segs.push({ left: cur, width: seg, color: SEG_COLOR.sleep });
+      } else {
+        segs.push({ left: bedOff + lis, width: sleepSpan, color: SEG_COLOR.sleep });
+      }
     }
   }
 
@@ -359,7 +373,7 @@ function actTimelineHtml(entries: SleepDiaryEntry[]): string {
   const legend = [
     { color: SEG_COLOR.latency, label: 'Latência' },
     { color: SEG_COLOR.sleep,   label: 'Sono' },
-    { color: SEG_COLOR.waso,    label: 'WASO' },
+    { color: '#ddd',            label: 'Acordado' },
     { color: SEG_COLOR.inertia, label: 'Inércia' },
   ].map(l =>
     `<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div>${l.label}</div>`,

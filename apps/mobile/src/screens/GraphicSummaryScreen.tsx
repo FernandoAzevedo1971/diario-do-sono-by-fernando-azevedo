@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { formatDuration } from '@diario-do-sono/core';
+import { formatDuration, type AwakeningDetail } from '@diario-do-sono/core';
 import { AppBackground } from '../components/AppBackground';
 import { BackArrow } from '../components/BackArrow';
 import { GlassCard } from '../components/GlassCard';
@@ -16,8 +16,8 @@ const RANGE_TOTAL_MINUTES = 20 * 60; // 18:00 → 14:00 next day
 const SEG = {
   latency: '#8B7FE8',
   sleep:   '#3ECFB0',
-  waso:    '#FF8C42',
   inertia: '#F8C86A',
+  wasoOrange: '#FF8C42', // usado apenas nos gráficos de tendência, não na actigrafia
 };
 
 // Chart layout
@@ -27,8 +27,7 @@ const DATE_H    = 16;                           // reserved at bottom for date l
 const BAR_H_MAX = CHART_H - VAL_H - DATE_H;    // = 66px usable for bars
 
 // Table layout
-const LABEL_W = 84;
-const DAY_W   = 37;
+const LABEL_W = 80;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -103,35 +102,47 @@ const axisStyles = StyleSheet.create({
 
 // ─── SleepBarRow ─────────────────────────────────────────────────────────────
 
-function SleepBarRow({ entry }: { entry: SleepDiaryEntry }) {
-  const { bedTime, sleepLatencyMinutes, nightAwakeningsCount, wasoMinutes, finalWakeTime, outOfBedLatencyMinutes } = entry.input;
-  const outOfBedTime = entry.metrics.outOfBedTime;
-
+function buildBarSegs(entry: SleepDiaryEntry): Array<{ flex: number; color: string }> {
+  const { bedTime, sleepLatencyMinutes, nightAwakeningsCount, wasoMinutes, finalWakeTime, outOfBedLatencyMinutes, awakeningDetails } = entry.input;
+  const oobOff = clamp(offsetMin(entry.metrics.outOfBedTime), 0, RANGE_TOTAL_MINUTES);
   const bedOff  = clamp(offsetMin(bedTime), 0, RANGE_TOTAL_MINUTES);
   const wakeOff = clamp(offsetMin(finalWakeTime), 0, RANGE_TOTAL_MINUTES);
-  const oobOff  = clamp(offsetMin(outOfBedTime), 0, RANGE_TOTAL_MINUTES);
-
   const segs: Array<{ flex: number; color: string }> = [];
 
   if (bedOff > 0) segs.push({ flex: bedOff, color: 'transparent' });
 
-  const lisC = clamp(sleepLatencyMinutes, 0, RANGE_TOTAL_MINUTES);
-  if (lisC > 0) segs.push({ flex: lisC, color: SEG.latency });
+  const lis = clamp(sleepLatencyMinutes, 0, RANGE_TOTAL_MINUTES);
+  if (lis > 0) segs.push({ flex: lis, color: SEG.latency });
 
-  const sleepPeriod = clamp(wakeOff - bedOff - lisC, 0, RANGE_TOTAL_MINUTES);
+  const sleepPeriod = clamp(wakeOff - bedOff - lis, 0, RANGE_TOTAL_MINUTES);
   if (sleepPeriod > 0) {
-    const capWaso = clamp(wasoMinutes, 0, sleepPeriod);
-    if (nightAwakeningsCount > 0 && capWaso > 0) {
-      const wasoEach = capWaso / nightAwakeningsCount;
-      const netSleep = sleepPeriod - capWaso;
-      const sp = netSleep / (nightAwakeningsCount + 1);
-      for (let i = 0; i < nightAwakeningsCount; i++) {
-        if (sp > 0.5) segs.push({ flex: sp, color: SEG.sleep });
-        segs.push({ flex: wasoEach, color: SEG.waso });
-      }
-      if (sp > 0.5) segs.push({ flex: sp, color: SEG.sleep });
+    const hasExactTimes = awakeningDetails && awakeningDetails.length > 0 && awakeningDetails.every(a => a.time);
+    if (hasExactTimes) {
+      const sorted = [...awakeningDetails!].sort((a, b) => offsetMin(a.time!) - offsetMin(b.time!));
+      const eachWaso = wasoMinutes / sorted.length;
+      let cursor = bedOff + lis;
+      sorted.forEach((awk, i) => {
+        const awkOff = clamp(offsetMin(awk.time!), cursor, wakeOff);
+        const dur = clamp(awk.durationMinutes ?? eachWaso, 1, wakeOff - awkOff);
+        if (awkOff - cursor > 0.5) segs.push({ flex: awkOff - cursor, color: SEG.sleep });
+        segs.push({ flex: dur, color: 'transparent' });
+        cursor = awkOff + dur;
+      });
+      if (wakeOff - cursor > 0.5) segs.push({ flex: wakeOff - cursor, color: SEG.sleep });
     } else {
-      segs.push({ flex: sleepPeriod, color: SEG.sleep });
+      const capWaso = clamp(wasoMinutes, 0, sleepPeriod);
+      if (nightAwakeningsCount > 0 && capWaso > 0) {
+        const wasoEach = capWaso / nightAwakeningsCount;
+        const netSleep = sleepPeriod - capWaso;
+        const sp = netSleep / (nightAwakeningsCount + 1);
+        for (let i = 0; i < nightAwakeningsCount; i++) {
+          if (sp > 0.5) segs.push({ flex: sp, color: SEG.sleep });
+          segs.push({ flex: wasoEach, color: 'transparent' });
+        }
+        if (sp > 0.5) segs.push({ flex: sp, color: SEG.sleep });
+      } else {
+        segs.push({ flex: sleepPeriod, color: SEG.sleep });
+      }
     }
   }
 
@@ -141,6 +152,11 @@ function SleepBarRow({ entry }: { entry: SleepDiaryEntry }) {
   const postOff = RANGE_TOTAL_MINUTES - oobOff;
   if (postOff > 0) segs.push({ flex: postOff, color: 'transparent' });
 
+  return segs;
+}
+
+function SleepBarRow({ entry }: { entry: SleepDiaryEntry }) {
+  const segs = buildBarSegs(entry);
   return (
     <View style={barRowStyles.row}>
       <Text style={barRowStyles.dateLabel}>{shortDate(entry.input.entryDate)}</Text>
@@ -352,64 +368,65 @@ const CALC_ROWS: TableRowDef[] = [
   }},
 ];
 
-function TableSectionRow({ title, numCols }: { title: string; numCols: number }) {
+function TableSectionRow({ title, dayW, numCols }: { title: string; dayW: number; numCols: number }) {
   return (
-    <View style={[tableStyles.sectionRow, { width: LABEL_W + numCols * DAY_W }]}>
+    <View style={[tableStyles.sectionRow, { width: LABEL_W + numCols * dayW }]}>
       <Text style={tableStyles.sectionLabel}>{title}</Text>
     </View>
   );
 }
 
 function DataTablePage({ entries }: { entries: SleepDiaryEntry[] }) {
+  const [availW, setAvailW] = useState(0);
   const n = entries.length;
-  const tableW = LABEL_W + n * DAY_W;
+  const dayW = availW > 0 ? Math.max(28, Math.floor((availW - LABEL_W) / 7)) : 34;
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      <View style={{ width: tableW }}>
+    <View onLayout={(e) => setAvailW(e.nativeEvent.layout.width)}>
+      <View style={{ width: LABEL_W + n * dayW }}>
 
         {/* Header */}
         <View style={tableStyles.headerRow}>
           <View style={{ width: LABEL_W }} />
           {entries.map((e) => (
-            <View key={e.id} style={{ width: DAY_W, alignItems: 'center' }}>
+            <View key={e.id} style={{ width: dayW, alignItems: 'center' }}>
               <Text style={tableStyles.headerText}>{shortDate(e.input.entryDate)}</Text>
             </View>
           ))}
         </View>
 
         {/* Input section */}
-        <TableSectionRow title="Anotado" numCols={n} />
+        <TableSectionRow title="Anotado" dayW={dayW} numCols={n} />
         {INPUT_ROWS.map((row, i) => (
           <View key={row.label} style={[tableStyles.dataRow, i % 2 === 1 && tableStyles.rowAlt]}>
             <View style={{ width: LABEL_W, paddingLeft: 6, justifyContent: 'center' }}>
               <Text style={tableStyles.rowLabel} numberOfLines={1}>{row.label}</Text>
             </View>
             {entries.map((e) => (
-              <View key={e.id} style={{ width: DAY_W, alignItems: 'center' }}>
-                <Text style={tableStyles.cellText} numberOfLines={1}>{row.getValue(e)}</Text>
+              <View key={e.id} style={{ width: dayW, alignItems: 'center' }}>
+                <Text style={tableStyles.cellText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{row.getValue(e)}</Text>
               </View>
             ))}
           </View>
         ))}
 
         {/* Calculated section */}
-        <TableSectionRow title="Calculado" numCols={n} />
+        <TableSectionRow title="Calculado" dayW={dayW} numCols={n} />
         {CALC_ROWS.map((row, i) => (
           <View key={row.label} style={[tableStyles.dataRow, i % 2 === 1 && tableStyles.rowAlt]}>
             <View style={{ width: LABEL_W, paddingLeft: 6, justifyContent: 'center' }}>
               <Text style={tableStyles.rowLabel} numberOfLines={1}>{row.label}</Text>
             </View>
             {entries.map((e) => (
-              <View key={e.id} style={{ width: DAY_W, alignItems: 'center' }}>
-                <Text style={tableStyles.cellText} numberOfLines={1}>{row.getValue(e)}</Text>
+              <View key={e.id} style={{ width: dayW, alignItems: 'center' }}>
+                <Text style={tableStyles.cellText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{row.getValue(e)}</Text>
               </View>
             ))}
           </View>
         ))}
 
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -501,7 +518,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
           <View style={styles.legend}>
             <LegendItem color={SEG.latency} label="Latência" />
             <LegendItem color={SEG.sleep}   label="Sono" />
-            <LegendItem color={SEG.waso}    label="WASO" />
+            <LegendItem color="rgba(255,255,255,0.15)" label="Acordado" />
             <LegendItem color={SEG.inertia} label="Inércia" />
           </View>
           <View style={styles.axisRow}>
@@ -584,7 +601,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
             title="Tempo acordado durante a noite (WASO)"
             getValue={(e) => e.metrics.wasoMinutes}
             formatValue={(v) => `${v}min`}
-            barColor={SEG.waso}
+            barColor={SEG.wasoOrange}
             referenceValue={30}
             referenceLabel="30min"
           />
@@ -597,7 +614,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
             title="Número de despertares"
             getValue={(e) => e.metrics.fragmentationCount}
             formatValue={(v) => `${Math.round(v)}`}
-            barColor={SEG.waso}
+            barColor={SEG.wasoOrange}
           />
         </GlassCard>
 

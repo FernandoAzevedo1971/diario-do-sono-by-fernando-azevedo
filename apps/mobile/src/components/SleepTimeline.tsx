@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
-import { minutesBetweenClockTimes } from '@diario-do-sono/core';
+import { minutesBetweenClockTimes, type AwakeningDetail } from '@diario-do-sono/core';
 import { colors, radius, spacing } from '../theme/tokens';
 
 // ─── constants ───────────────────────────────────────────────────────────────
@@ -11,7 +11,6 @@ const RANGE_TOTAL_MINUTES = 20 * 60; // 18:00 → 14:00 next day
 const SEGMENT = {
   latency: '#8B7FE8', // purple — deitar → adormecer
   sleep: '#3ECFB0',   // teal   — sono consolidado
-  waso: '#FF8C42',    // orange — WASO (despertares)
   inertia: '#F8C86A', // yellow — inércia ao sair da cama
 };
 
@@ -45,41 +44,53 @@ function buildSegments(
   finalWakeOffset: number,
   outOfBedLatencyMinutes: number,
   outOfBedOffset: number,
+  awakeningDetails?: AwakeningDetail[] | null,
 ): SegmentDef[] {
   const segs: SegmentDef[] = [];
 
-  // void before bed
   const preBed = clamp(bedOffset, 0, RANGE_TOTAL_MINUTES);
   if (preBed > 0) segs.push({ key: 'void-pre', flex: preBed, color: 'transparent' });
 
-  // sleep latency (LIS)
   const lis = clamp(lisMinutes, 0, RANGE_TOTAL_MINUTES);
   if (lis > 0) segs.push({ key: 'lis', flex: lis, color: SEGMENT.latency });
 
-  // sleep period (LIS end → final wake)
   const sleepPeriod = clamp(finalWakeOffset - bedOffset - lis, 0, RANGE_TOTAL_MINUTES);
   if (sleepPeriod > 0) {
-    const capWaso = clamp(wasoMinutes, 0, sleepPeriod);
-    if (nightAwakeningsCount > 0 && capWaso > 0) {
-      const wasoEach = capWaso / nightAwakeningsCount;
-      const netSleep = sleepPeriod - capWaso;
-      const spacing = netSleep / (nightAwakeningsCount + 1);
-
-      for (let i = 0; i < nightAwakeningsCount; i++) {
-        if (spacing > 0.5) segs.push({ key: `sleep-${i}`, flex: spacing, color: SEGMENT.sleep });
-        segs.push({ key: `waso-${i}`, flex: wasoEach, color: SEGMENT.waso });
-      }
-      if (spacing > 0.5) segs.push({ key: 'sleep-last', flex: spacing, color: SEGMENT.sleep });
+    const hasExactTimes = awakeningDetails && awakeningDetails.length > 0 && awakeningDetails.every(a => a.time);
+    if (hasExactTimes) {
+      const sorted = [...awakeningDetails!].sort(
+        (a, b) => offsetFromRangeStart(a.time!) - offsetFromRangeStart(b.time!),
+      );
+      const eachWaso = wasoMinutes / sorted.length;
+      let cursor = bedOffset + lis;
+      sorted.forEach((awk, i) => {
+        const awkOff = clamp(offsetFromRangeStart(awk.time!), cursor, finalWakeOffset);
+        const dur = clamp(awk.durationMinutes ?? eachWaso, 1, finalWakeOffset - awkOff);
+        if (awkOff - cursor > 0.5) segs.push({ key: `sleep-${i}`, flex: awkOff - cursor, color: SEGMENT.sleep });
+        segs.push({ key: `waso-${i}`, flex: dur, color: 'transparent' });
+        cursor = awkOff + dur;
+      });
+      if (finalWakeOffset - cursor > 0.5) segs.push({ key: 'sleep-last', flex: finalWakeOffset - cursor, color: SEGMENT.sleep });
     } else {
-      segs.push({ key: 'sleep', flex: sleepPeriod, color: SEGMENT.sleep });
+      const capWaso = clamp(wasoMinutes, 0, sleepPeriod);
+      if (nightAwakeningsCount > 0 && capWaso > 0) {
+        const wasoEach = capWaso / nightAwakeningsCount;
+        const netSleep = sleepPeriod - capWaso;
+        const sp = netSleep / (nightAwakeningsCount + 1);
+        for (let i = 0; i < nightAwakeningsCount; i++) {
+          if (sp > 0.5) segs.push({ key: `sleep-${i}`, flex: sp, color: SEGMENT.sleep });
+          segs.push({ key: `waso-${i}`, flex: wasoEach, color: 'transparent' });
+        }
+        if (sp > 0.5) segs.push({ key: 'sleep-last', flex: sp, color: SEGMENT.sleep });
+      } else {
+        segs.push({ key: 'sleep', flex: sleepPeriod, color: SEGMENT.sleep });
+      }
     }
   }
 
-  // inertia
   const inertia = clamp(outOfBedLatencyMinutes, 0, RANGE_TOTAL_MINUTES);
   if (inertia > 0) segs.push({ key: 'inertia', flex: inertia, color: SEGMENT.inertia });
 
-  // void after outOfBed
   const postBed = RANGE_TOTAL_MINUTES - outOfBedOffset;
   if (postBed > 0) segs.push({ key: 'void-post', flex: postBed, color: 'transparent' });
 
@@ -96,6 +107,7 @@ export interface SleepTimelineProps {
   finalWakeTime: string;
   outOfBedLatencyMinutes: number;
   outOfBedTime: string;
+  awakeningDetails?: AwakeningDetail[] | null;
   onChangeBedTime?: (v: string) => void;
   onChangeFinalWakeTime?: (v: string) => void;
 }
@@ -108,6 +120,7 @@ export function SleepTimeline({
   finalWakeTime,
   outOfBedLatencyMinutes,
   outOfBedTime,
+  awakeningDetails,
   onChangeBedTime,
   onChangeFinalWakeTime,
 }: SleepTimelineProps) {
@@ -126,6 +139,7 @@ export function SleepTimeline({
   const segments = buildSegments(
     bedOffset, sleepLatencyMinutes, nightAwakeningsCount,
     wasoMinutes, wakeOffset, outOfBedLatencyMinutes, outOfBedOffset,
+    awakeningDetails,
   );
 
   const interactive = !!(onChangeBedTime || onChangeFinalWakeTime);
@@ -238,7 +252,7 @@ export function SleepTimeline({
       <View style={styles.legend}>
         <LegendItem color={SEGMENT.latency} label="Latência" />
         <LegendItem color={SEGMENT.sleep} label="Sono" />
-        <LegendItem color={SEGMENT.waso} label="WASO" />
+        <LegendItem color="rgba(255,255,255,0.15)" label="Acordado" />
         <LegendItem color={SEGMENT.inertia} label="Inércia" />
       </View>
     </View>

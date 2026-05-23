@@ -97,7 +97,7 @@ const CSS = `
   .trans-table thead tr { background: #080B1F; color: #fff; }
   .trans-table thead th { padding: 5px 3px; text-align: center; font-weight: 700; }
   .trans-table thead th:first-child { text-align: left; width: 26%; }
-  .trans-table td { padding: 3.5px 4px; text-align: center; border-bottom: 1px solid #eee; }
+  .trans-table td { padding: 3.5px 4px; text-align: center; border-bottom: 1px solid #eee; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0; }
   .param-lbl { text-align: left !important; color: #666; font-size: 8px; }
   .alt-row td { background: #f8f9ff; }
   .sec-hdr td { background: #d2f5f0; color: #1e8c78; font-size: 7.5px; font-weight: 800;
@@ -193,6 +193,8 @@ const INPUT_ROWS: TransRow[] = [
     const parts = [m.name, m.dose, m.time ? `(${m.time})` : null].filter(Boolean);
     return parts.length ? parts.join(' ') : 'Sim';
   }},
+  { label: 'Obs. noite',    getValue: (e) => e.input.nightObservations?.trim() || '—' },
+  { label: 'Obs. dia',      getValue: (e) => e.input.dayObservations?.trim() || '—' },
 ];
 
 const CALC_ROWS: TransRow[] = [

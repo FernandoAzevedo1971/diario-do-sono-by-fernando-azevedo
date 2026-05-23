@@ -354,6 +354,13 @@ const INPUT_ROWS: TableRowDef[] = [
   { label: 'Qualidade sono',  getValue: (e) => fmtQuality(e.input.sleepQuality) },
   { label: 'Ao acordar',      getValue: (e) => fmtFeeling(e.input.morningFeeling) },
   { label: 'Durante o dia',   getValue: (e) => fmtFeeling(e.input.daytimeFeeling) },
+  { label: 'Medicação',       getValue: (e) => {
+    const m = e.input.sleepMedication;
+    if (!m?.used) return '—';
+    return [m.name, m.dose].filter(Boolean).join(' ') || 'Sim';
+  }},
+  { label: 'Obs. noite',      getValue: (e) => e.input.nightObservations?.trim() || '—' },
+  { label: 'Obs. dia',        getValue: (e) => e.input.dayObservations?.trim() || '—' },
 ];
 
 const CALC_ROWS: TableRowDef[] = [

@@ -65,15 +65,15 @@ export function TodayScreen({ profile, entries, isiHistory, onNewEntry, onEditEn
           <PrimaryButton label="Resumo Gráfico" onPress={onSummary} />
         ) : null}
 
-        <PrimaryButton label="Preencher Índice de Gravidade de Insônia" variant="secondary" onPress={onIsi} />
+        <PrimaryButton label="Preencher ISI" variant="secondary" onPress={onIsi} />
 
         {isiHistory.length > 0 ? (
-          <PrimaryButton label="Histórico do IGI" variant="secondary" onPress={onIsiHistory} />
+          <PrimaryButton label="Histórico do ISI" variant="secondary" onPress={onIsiHistory} />
         ) : null}
 
         {latestIsi ? (
           <GlassCard style={styles.card}>
-            <Text style={styles.cardTitle}>Último IGI</Text>
+            <Text style={styles.cardTitle}>Último ISI</Text>
             <View style={styles.isiRow}>
               <Text style={[styles.isiScore, { color: ISI_SEVERITY_COLOR[latestIsi.severity] }]}>{latestIsi.score}</Text>
               <View style={styles.isiInfo}>

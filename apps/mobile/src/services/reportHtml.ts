@@ -264,11 +264,11 @@ function metricsGrid(avg: ReturnType<typeof calculateSleepDiaryAverages>): strin
 function isiBlock(profile: PatientProfile): string {
   if (!profile.initialIsiScore && profile.initialIsiScore !== 0) return '';
   return `
-    <h2>Índice de Gravidade de Insônia (IGI)</h2>
+    <h2>Índice de Gravidade de Insônia (ISI)</h2>
     <div class="isi-box">
       <div class="isi-score">${profile.initialIsiScore}</div>
       <div>
-        <div class="isi-label">Pontuação IGI</div>
+        <div class="isi-label">Pontuação ISI</div>
         <div class="isi-interp">${profile.initialIsiInterpretation ?? ''}</div>
       </div>
     </div>`;

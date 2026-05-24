@@ -26,12 +26,12 @@ export function IsiHistoryScreen({ isiHistory, onBack }: { isiHistory: IsiRecord
     <AppBackground>
       <ScrollView contentContainerStyle={styles.content}>
         <BackArrow onPress={onBack} />
-        <Text style={styles.title}>Histórico do IGI</Text>
+        <Text style={styles.title}>Histórico do ISI</Text>
         <Text style={styles.subtitle}>Índice de Gravidade de Insônia — todos os resultados</Text>
 
         {isiHistory.length === 0 ? (
           <GlassCard>
-            <Text style={styles.empty}>Nenhum resultado de IGI registrado ainda.</Text>
+            <Text style={styles.empty}>Nenhum resultado de ISI registrado ainda.</Text>
           </GlassCard>
         ) : (
           isiHistory.map((record) => (

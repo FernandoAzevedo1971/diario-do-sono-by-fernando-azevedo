@@ -484,7 +484,7 @@ function drawAveragesPage(
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     setTextColor(doc, C.darkText);
-    doc.text('IGI (Índice de Gravidade de Insônia):', MARGIN + 4, y + 5.5);
+    doc.text('ISI (Insomnia Severity Index):', MARGIN + 4, y + 5.5);
     doc.setFont('helvetica', 'normal');
     doc.text(
       `Pontuação ${profile.initialIsiScore}${profile.initialIsiInterpretation ? ' — ' + profile.initialIsiInterpretation : ''}`,

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { calculateSleepDiary, minutesBetweenClockTimes, type AwakeningDetail, type DailyFeeling, type SleepDiaryInput, type SleepQuality } from '@diario-do-sono/core';
 import { AppBackground } from '../components/AppBackground';
 import { BackArrow } from '../components/BackArrow';
@@ -60,6 +60,8 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
 
   const maxPerceivedMinutes = minutesBetweenClockTimes(input.bedTime, input.finalWakeTime);
 
+  const goNext = () => setStep(step + 1);
+
   const allDurationsProvided =
     input.nightAwakeningsCount > 0 &&
     (input.awakeningDetails?.length ?? 0) >= input.nightAwakeningsCount &&
@@ -93,7 +95,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
           />
           {input.nightAwakeningsCount > 0 ? (
             <View style={styles.awakeningDetailsSection}>
-              <Text style={styles.fieldLabel}>Horários dos despertares (opcional)</Text>
+              <Text style={styles.fieldLabel}>Horário e duração de cada despertar (opcional)</Text>
               {Array.from({ length: input.nightAwakeningsCount }, (_, i) => {
                 const det = input.awakeningDetails?.[i];
                 const updateDetail = (patch: Partial<AwakeningDetail>) => {
@@ -106,18 +108,10 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
                 return (
                   <View key={i} style={styles.awakeningRow}>
                     <Text style={styles.awakeningLabel}>Despertar {i + 1}</Text>
-                    <TimeInput
-                      value={det?.time ?? '03:00'}
-                      onChange={(v) => updateDetail({ time: v })}
-                      rangeStart="22:00"
-                      rangeEnd="09:00"
-                    />
-                    <StepperInput
-                      value={det?.durationMinutes ?? 0}
-                      onChange={(v) => updateDetail({ durationMinutes: v || null })}
-                      suffix="min acordado"
-                      step={5}
-                    />
+                    <View style={styles.awakeningControls}>
+                      <CompactTimePicker value={det?.time ?? '03:00'} onChange={(v) => updateDetail({ time: v })} />
+                      <CompactDurationPicker value={det?.durationMinutes ?? 0} onChange={(v) => updateDetail({ durationMinutes: v || null })} />
+                    </View>
                   </View>
                 );
               })}
@@ -144,11 +138,13 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
     },
     {
       title: 'Como foi a qualidade do sono esta noite?',
-      content: <ChoiceGroup value={input.sleepQuality} onChange={(value) => setInput({ ...input, sleepQuality: value as SleepQuality })} options={[['good', 'Boa ou muito boa'], ['regular', 'Regular ou média'], ['bad', 'Ruim ou péssima']]} />,
+      autoAdvance: true,
+      content: <ChoiceGroup value={input.sleepQuality} onChange={(value) => { setInput({ ...input, sleepQuality: value as SleepQuality }); setTimeout(goNext, 150); }} options={[['good', 'Boa ou muito boa'], ['regular', 'Regular ou média'], ['bad', 'Ruim ou péssima']]} />,
     },
     {
       title: 'Como se sente nesta manhã?',
-      content: <ChoiceGroup value={input.morningFeeling} onChange={(value) => setInput({ ...input, morningFeeling: value as DailyFeeling })} options={[['rested', 'Descansado'], ['tired', 'Cansado'], ['sleepy', 'Sonolento']]} />,
+      autoAdvance: true,
+      content: <ChoiceGroup value={input.morningFeeling} onChange={(value) => { setInput({ ...input, morningFeeling: value as DailyFeeling }); setTimeout(goNext, 150); }} options={[['rested', 'Descansado'], ['tired', 'Cansado'], ['sleepy', 'Sonolento']]} />,
     },
     {
       title: 'Ingeriu álcool ontem?',
@@ -254,25 +250,23 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
                 />
               ) : null}
               <TextInput
-                style={styles.textArea}
+                style={styles.textInput}
                 placeholder="Nome do medicamento"
                 placeholderTextColor={colors.textMuted}
                 value={input.sleepMedication.name ?? ''}
                 onChangeText={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, name: value } })}
               />
               <TextInput
-                style={styles.textArea}
+                style={styles.textInput}
                 placeholder="Dose (ex: 10mg)"
                 placeholderTextColor={colors.textMuted}
                 value={input.sleepMedication.dose ?? ''}
                 onChangeText={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, dose: value } })}
               />
               <Text style={styles.fieldLabel}>Horário que tomou</Text>
-              <TimeInput
+              <CompactTimePicker
                 value={input.sleepMedication.time ?? '22:00'}
                 onChange={(value) => setInput({ ...input, sleepMedication: { ...input.sleepMedication, used: true, time: value } })}
-                rangeStart="18:00"
-                rangeEnd="02:00"
               />
             </>
           ) : null}
@@ -281,7 +275,8 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
     },
     {
       title: 'Como se sentiu durante o dia de ontem?',
-      content: <ChoiceGroup value={input.daytimeFeeling ?? ''} onChange={(value) => setInput({ ...input, daytimeFeeling: value as DailyFeeling })} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />,
+      autoAdvance: true,
+      content: <ChoiceGroup value={input.daytimeFeeling ?? ''} onChange={(value) => { setInput({ ...input, daytimeFeeling: value as DailyFeeling }); setTimeout(goNext, 150); }} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />,
     },
     {
       title: 'Observações (opcional)',
@@ -310,7 +305,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
     },
   ];
 
-  const currentStep = steps[step];
+  const currentStep = steps[step] as { title: string; content: React.ReactNode; autoAdvance?: boolean };
   const isLastStep = step === steps.length - 1;
 
   return (
@@ -344,7 +339,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
         ) : null}
         <View style={styles.actions}>
           <PrimaryButton label={step === 0 ? 'Cancelar' : 'Voltar'} variant="secondary" onPress={() => (step === 0 ? onCancel() : setStep(step - 1))} />
-          <PrimaryButton
+          {!currentStep.autoAdvance && <PrimaryButton
             label={isLastStep ? 'Salvar diário' : 'Continuar'}
             onPress={() => {
               if (!isLastStep) {
@@ -367,10 +362,43 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
                 version: editingEntry?.version ?? 1,
               });
             }}
-          />
+          />}
         </View>
       </ScrollView>
     </AppBackground>
+  );
+}
+
+function CompactTimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [h, m] = value.split(':').map(Number);
+  const adjust = (delta: number) => {
+    const norm = ((h * 60 + m + delta) % 1440 + 1440) % 1440;
+    onChange(`${String(Math.floor(norm / 60)).padStart(2, '0')}:${String(norm % 60).padStart(2, '0')}`);
+  };
+  return (
+    <View style={styles.compactPickerRow}>
+      <Pressable onPress={() => adjust(-30)} hitSlop={10} style={styles.compactBtn}>
+        <Text style={styles.compactBtnText}>−</Text>
+      </Pressable>
+      <Text style={styles.compactValue}>{value}</Text>
+      <Pressable onPress={() => adjust(30)} hitSlop={10} style={styles.compactBtn}>
+        <Text style={styles.compactBtnText}>+</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function CompactDurationPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <View style={styles.compactPickerRow}>
+      <Pressable onPress={() => onChange(Math.max(0, value - 5))} hitSlop={10} style={styles.compactBtn}>
+        <Text style={styles.compactBtnText}>−</Text>
+      </Pressable>
+      <Text style={styles.compactValue}>{value}min</Text>
+      <Pressable onPress={() => onChange(value + 5)} hitSlop={10} style={styles.compactBtn}>
+        <Text style={styles.compactBtnText}>+</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -393,11 +421,17 @@ const styles = StyleSheet.create({
   fieldLabel: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
   repeatBtn: { borderColor: colors.cyan, backgroundColor: 'rgba(101,214,255,0.08)' },
   textArea: { minHeight: 88, borderRadius: 16, borderWidth: 1, borderColor: colors.border, color: colors.text, padding: 14, textAlignVertical: 'top', backgroundColor: 'rgba(255,255,255,0.06)' },
+  textInput: { height: 46, borderRadius: 12, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingHorizontal: 14, backgroundColor: 'rgba(255,255,255,0.06)' },
   actions: { flexDirection: 'row', gap: spacing.md },
   warningCard: { gap: spacing.sm },
   warning: { color: colors.sunrise },
   error: { color: colors.danger },
-  awakeningDetailsSection: { gap: spacing.md, paddingTop: spacing.sm },
-  awakeningRow: { gap: spacing.sm, paddingBottom: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  awakeningDetailsSection: { gap: 6, paddingTop: spacing.xs },
+  awakeningRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)' },
+  awakeningControls: { flexDirection: 'row', gap: spacing.sm },
   awakeningLabel: { color: colors.cyan, fontSize: 13, fontWeight: '700' },
+  compactPickerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  compactBtn: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(109,93,246,0.25)' },
+  compactBtnText: { color: colors.cyan, fontSize: 16, fontWeight: '700', lineHeight: 20 },
+  compactValue: { color: colors.text, fontSize: 13, fontWeight: '700', minWidth: 42, textAlign: 'center' },
 });

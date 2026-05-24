@@ -65,7 +65,7 @@ export function TodayScreen({ profile, entries, isiHistory, onNewEntry, onEditEn
           <PrimaryButton label="Resumo Gráfico" onPress={onSummary} />
         ) : null}
 
-        <PrimaryButton label="Preencher ISI" variant="secondary" onPress={onIsi} />
+        <PrimaryButton label="Preencher Índice de Gravidade de Insônia (IGI/ISI)" variant="secondary" onPress={onIsi} />
 
         {isiHistory.length > 0 ? (
           <PrimaryButton label="Histórico do ISI" variant="secondary" onPress={onIsiHistory} />

@@ -8,6 +8,22 @@ import { OptionCard } from '../components/OptionCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 
+type Severity = 'none' | 'subclinical' | 'moderate' | 'severe';
+
+const SEVERITY_COLOR: Record<Severity, string> = {
+  none:        colors.success,
+  subclinical: colors.sunrise,
+  moderate:    '#F5A623',
+  severe:      colors.danger,
+};
+
+const SCORE_BANDS: Array<{ range: string; label: string; severity: Severity }> = [
+  { range: '0–7',   label: 'Ausência de insônia significativa', severity: 'none' },
+  { range: '8–14',  label: 'Limite inferior para insônia',       severity: 'subclinical' },
+  { range: '15–21', label: 'Insônia clínica moderada',           severity: 'moderate' },
+  { range: '22–28', label: 'Insônia clínica grave',              severity: 'severe' },
+];
+
 export function IsiPromptScreen({ onComplete, onBack }: { onComplete: (score: number, interpretation: string, severity: 'none' | 'subclinical' | 'moderate' | 'severe') => void | Promise<void>; onBack?: () => void }) {
   const [answers, setAnswers] = useState<Array<number | null>>(Array(ISI_ITEMS.length).fill(null));
   const [isSaving, setIsSaving] = useState(false);
@@ -55,8 +71,23 @@ export function IsiPromptScreen({ onComplete, onBack }: { onComplete: (score: nu
         ))}
         {isComplete && result.isValid ? (
           <GlassCard style={styles.resultCard}>
-            <Text style={styles.resultScore}>Pontuacao: {result.score}</Text>
-            <Text style={styles.resultText}>{result.interpretation}</Text>
+            <Text style={styles.resultScore}>
+              Pontuação: <Text style={{ color: SEVERITY_COLOR[result.severity as Severity] }}>{result.score}</Text>
+            </Text>
+            <Text style={[styles.resultText, { color: SEVERITY_COLOR[result.severity as Severity] }]}>
+              {result.interpretation}
+            </Text>
+            <View style={styles.bandsContainer}>
+              {SCORE_BANDS.map((band) => {
+                const active = band.severity === result.severity;
+                return (
+                  <View key={band.range} style={[styles.bandRow, active && { borderLeftColor: SEVERITY_COLOR[band.severity] }]}>
+                    <Text style={[styles.bandRange, active && { color: SEVERITY_COLOR[band.severity] }]}>{band.range}</Text>
+                    <Text style={[styles.bandLabel, active && { color: SEVERITY_COLOR[band.severity], fontWeight: '800' }]}>{band.label}</Text>
+                  </View>
+                );
+              })}
+            </View>
           </GlassCard>
         ) : null}
         <GlassCard style={styles.aboutCard}>
@@ -89,9 +120,13 @@ const styles = StyleSheet.create({
   card: { gap: spacing.sm },
   question: { color: colors.text, fontSize: 14, fontWeight: '800', lineHeight: 20 },
   scaleRow: { gap: spacing.xs },
-  resultCard: { gap: spacing.xs },
-  resultScore: { color: colors.cyan, fontSize: 15, fontWeight: '900' },
-  resultText: { color: colors.text, fontSize: 13, lineHeight: 18 },
+  resultCard: { gap: spacing.sm },
+  resultScore: { color: colors.text, fontSize: 15, fontWeight: '900' },
+  resultText: { fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  bandsContainer: { gap: 3, marginTop: spacing.xs },
+  bandRow: { flexDirection: 'row', gap: spacing.sm, paddingVertical: 5, paddingHorizontal: 8, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: 'transparent', backgroundColor: 'rgba(255,255,255,0.04)' },
+  bandRange: { color: colors.textMuted, fontSize: 12, fontWeight: '700', minWidth: 44 },
+  bandLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '500', flex: 1 },
   subtitleBold: { fontWeight: '800', color: colors.text },
   aboutCard: { gap: spacing.sm, marginTop: spacing.xs },
   aboutTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },

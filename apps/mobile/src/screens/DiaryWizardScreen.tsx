@@ -56,7 +56,15 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
 }) {
   const [step, setStep] = useState(0);
   const [input, setInput] = useState<SleepDiaryInput>(editingEntry?.input ?? buildInitialInput(initialDate));
+  const [answeredFields, setAnsweredFields] = useState<Set<string>>(
+    () => editingEntry
+      ? new Set(['sleepQuality', 'morningFeeling', 'alcoholUse', 'physicalActivity', 'sleepMedication', 'daytimeFeeling'])
+      : new Set(),
+  );
   const result = useMemo(() => calculateSleepDiary(input), [input]);
+
+  const mark = (field: string) => setAnsweredFields(prev => new Set([...prev, field]));
+  const has = (field: string) => answeredFields.has(field);
 
   const maxPerceivedMinutes = minutesBetweenClockTimes(input.bedTime, input.finalWakeTime);
 
@@ -139,28 +147,28 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
     {
       title: 'Como foi a qualidade do sono esta noite?',
       autoAdvance: true,
-      content: <ChoiceGroup value={input.sleepQuality} onChange={(value) => { setInput({ ...input, sleepQuality: value as SleepQuality }); setTimeout(goNext, 150); }} options={[['good', 'Boa ou muito boa'], ['regular', 'Regular ou média'], ['bad', 'Ruim ou péssima']]} />,
+      content: <ChoiceGroup value={has('sleepQuality') ? input.sleepQuality : ''} onChange={(value) => { mark('sleepQuality'); setInput({ ...input, sleepQuality: value as SleepQuality }); setTimeout(goNext, 150); }} options={[['good', 'Boa ou muito boa'], ['regular', 'Regular ou média'], ['bad', 'Ruim ou péssima']]} />,
     },
     {
       title: 'Como se sente nesta manhã?',
       autoAdvance: true,
-      content: <ChoiceGroup value={input.morningFeeling} onChange={(value) => { setInput({ ...input, morningFeeling: value as DailyFeeling }); setTimeout(goNext, 150); }} options={[['rested', 'Descansado'], ['tired', 'Cansado'], ['sleepy', 'Sonolento']]} />,
+      content: <ChoiceGroup value={has('morningFeeling') ? input.morningFeeling : ''} onChange={(value) => { mark('morningFeeling'); setInput({ ...input, morningFeeling: value as DailyFeeling }); setTimeout(goNext, 150); }} options={[['rested', 'Descansado'], ['tired', 'Cansado'], ['sleepy', 'Sonolento']]} />,
     },
     {
       title: 'Ingeriu álcool ontem?',
       content: (
         <View style={styles.optionalGroup}>
           <ChoiceGroup
-            value={input.alcoholUse?.used ? 'yes' : 'no'}
-            onChange={(value) => setInput({
+            value={has('alcoholUse') ? (input.alcoholUse?.used ? 'yes' : 'no') : ''}
+            onChange={(value) => { mark('alcoholUse'); setInput({
               ...input,
               alcoholUse: value === 'yes'
                 ? { used: true, amount: input.alcoholUse?.amount ?? '', beverage: input.alcoholUse?.beverage ?? '', untilTime: input.alcoholUse?.untilTime ?? '' }
                 : { used: false, amount: null, beverage: null, untilTime: null },
-            })}
+            }); }}
             options={[['no', 'NÃO'], ['yes', 'SIM']]}
           />
-          {input.alcoholUse?.used ? (
+          {has('alcoholUse') && input.alcoholUse?.used ? (
             <>
               <TextInput
                 style={styles.textArea}
@@ -187,16 +195,16 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
       content: (
         <View style={styles.optionalGroup}>
           <ChoiceGroup
-            value={input.physicalActivity?.didActivity ? 'yes' : 'no'}
-            onChange={(value) => setInput({
+            value={has('physicalActivity') ? (input.physicalActivity?.didActivity ? 'yes' : 'no') : ''}
+            onChange={(value) => { mark('physicalActivity'); setInput({
               ...input,
               physicalActivity: value === 'yes'
                 ? { didActivity: true, intensity: input.physicalActivity?.intensity ?? 'light', description: input.physicalActivity?.description ?? '', endTime: input.physicalActivity?.endTime ?? '' }
                 : { didActivity: false, intensity: null, description: null, endTime: null },
-            })}
+            }); }}
             options={[['no', 'NÃO'], ['yes', 'SIM']]}
           />
-          {input.physicalActivity?.didActivity ? (
+          {has('physicalActivity') && input.physicalActivity?.didActivity ? (
             <>
               <ChoiceGroup
                 value={input.physicalActivity.intensity ?? 'light'}
@@ -227,28 +235,25 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
       title: 'Usou alguma medicação para dormir ontem?',
       content: (
         <View style={styles.optionalGroup}>
+          {previousEntry?.input.sleepMedication?.used ? (
+            <OptionCard
+              label={`Repetir do dia anterior: ${previousEntry.input.sleepMedication.name ?? ''} ${previousEntry.input.sleepMedication.dose ?? ''}`}
+              onPress={() => { mark('sleepMedication'); setInput({ ...input, sleepMedication: { ...previousEntry.input.sleepMedication, used: true } }); }}
+              style={styles.repeatBtn}
+            />
+          ) : null}
           <ChoiceGroup
-            value={input.sleepMedication?.used ? 'yes' : 'no'}
-            onChange={(value) => setInput({
+            value={has('sleepMedication') ? (input.sleepMedication?.used ? 'yes' : 'no') : ''}
+            onChange={(value) => { mark('sleepMedication'); setInput({
               ...input,
               sleepMedication: value === 'yes'
                 ? { used: true, name: input.sleepMedication?.name ?? '', dose: input.sleepMedication?.dose ?? '', time: input.sleepMedication?.time ?? '22:00' }
                 : { used: false, name: null, dose: null, time: null },
-            })}
+            }); }}
             options={[['no', 'NÃO'], ['yes', 'SIM']]}
           />
-          {input.sleepMedication?.used ? (
+          {has('sleepMedication') && input.sleepMedication?.used ? (
             <>
-              {previousEntry?.input.sleepMedication?.used ? (
-                <OptionCard
-                  label={`Repetir do dia anterior: ${previousEntry.input.sleepMedication.name ?? ''} ${previousEntry.input.sleepMedication.dose ?? ''}`}
-                  onPress={() => setInput({
-                    ...input,
-                    sleepMedication: { ...previousEntry.input.sleepMedication, used: true },
-                  })}
-                  style={styles.repeatBtn}
-                />
-              ) : null}
               <TextInput
                 style={styles.textInput}
                 placeholder="Nome do medicamento"
@@ -276,7 +281,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
     {
       title: 'Como se sentiu durante o dia de ontem?',
       autoAdvance: true,
-      content: <ChoiceGroup value={input.daytimeFeeling ?? ''} onChange={(value) => { setInput({ ...input, daytimeFeeling: value as DailyFeeling }); setTimeout(goNext, 150); }} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />,
+      content: <ChoiceGroup value={has('daytimeFeeling') ? (input.daytimeFeeling ?? '') : ''} onChange={(value) => { mark('daytimeFeeling'); setInput({ ...input, daytimeFeeling: value as DailyFeeling }); setTimeout(goNext, 150); }} options={[['rested', 'Descansado durante o dia'], ['tired', 'Cansado durante o dia'], ['sleepy', 'Sonolento durante o dia']]} />,
     },
     {
       title: 'Observações (opcional)',

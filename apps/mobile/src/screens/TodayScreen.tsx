@@ -31,8 +31,8 @@ export function TodayScreen({ profile, entries, isiHistory, onNewEntry, onEditEn
   onIsi: () => void;
   onIsiHistory: () => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
-  const todayEntry = entries.find((entry) => entry.input.entryDate === today);
+  const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })();
+  const todayEntry = entries.find((entry) => entry.input.entryDate === yesterday);
   const latestEntry = todayEntry ?? entries[0];
   const averages = calculateSleepDiaryAverages(entries.map((entry) => ({ input: entry.input, metrics: entry.metrics })));
   const recentEntries = entries.slice(0, 5);

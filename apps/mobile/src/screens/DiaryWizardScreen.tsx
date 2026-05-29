@@ -11,13 +11,15 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing } from '../theme/tokens';
 import type { SleepDiaryEntry } from '../types';
 
-function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
+function yesterdayIsoDate() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
 }
 
 function buildInitialInput(initialDate?: string): SleepDiaryInput {
   return {
-  entryDate: initialDate ?? todayIsoDate(),
+  entryDate: initialDate ?? yesterdayIsoDate(),
   bedTime: '22:30',
   sleepLatencyMinutes: 20,
   nightAwakeningsCount: 1,

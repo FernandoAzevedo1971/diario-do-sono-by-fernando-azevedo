@@ -47,6 +47,27 @@ function shortDate(iso: string): string {
   return `${parts[2]}/${parts[1]}`;
 }
 
+// ─── Day range builder ────────────────────────────────────────────────────────
+
+interface DaySlot {
+  date: string;
+  entry: SleepDiaryEntry | null;
+}
+
+function buildDayRange(entries: SleepDiaryEntry[]): DaySlot[] {
+  if (entries.length === 0) return [];
+  const byDate = new Map(entries.map(e => [e.input.entryDate, e]));
+  const dates = [...byDate.keys()].sort();
+  const start = new Date(dates[0] + 'T12:00:00Z');
+  const end = new Date(dates[dates.length - 1] + 'T12:00:00Z');
+  const slots: DaySlot[] = [];
+  for (const cur = new Date(start); cur <= end; cur.setUTCDate(cur.getUTCDate() + 1)) {
+    const iso = cur.toISOString().slice(0, 10);
+    slots.push({ date: iso, entry: byDate.get(iso) ?? null });
+  }
+  return slots;
+}
+
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
@@ -155,11 +176,23 @@ function buildBarSegs(entry: SleepDiaryEntry): Array<{ flex: number; color: stri
   return segs;
 }
 
-function SleepBarRow({ entry }: { entry: SleepDiaryEntry }) {
+function SleepBarRow({ slot }: { slot: DaySlot }) {
+  const { date, entry } = slot;
+  if (!entry) {
+    return (
+      <View style={barRowStyles.row}>
+        <Text style={barRowStyles.dateLabel}>{shortDate(date)}</Text>
+        <View style={[barRowStyles.bar, barRowStyles.barEmpty]}>
+          <Text style={barRowStyles.notFilledLabel}>NÃO PREENCHIDO</Text>
+        </View>
+        <Text style={barRowStyles.effLabel}>—</Text>
+      </View>
+    );
+  }
   const segs = buildBarSegs(entry);
   return (
     <View style={barRowStyles.row}>
-      <Text style={barRowStyles.dateLabel}>{shortDate(entry.input.entryDate)}</Text>
+      <Text style={barRowStyles.dateLabel}>{shortDate(date)}</Text>
       <View style={barRowStyles.bar}>
         {segs.map((s, i) => (
           <View key={i} style={{ flex: s.flex, backgroundColor: s.color }} />
@@ -180,6 +213,19 @@ const barRowStyles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.05)',
     flexDirection: 'row',
+  },
+  barEmpty: {
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingLeft: 8,
+    backgroundColor: 'rgba(255,255,255,0.025)',
+  },
+  notFilledLabel: {
+    color: colors.textMuted,
+    fontSize: 8,
+    letterSpacing: 3,
+    fontWeight: '400',
+    opacity: 0.55,
   },
   effLabel: { color: colors.textMuted, fontSize: 10, width: 34, textAlign: 'right' },
 });
@@ -496,7 +542,9 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
   onBack: () => void;
   onReport: () => void;
 }) {
-  // Last 14 entries, oldest first so charts flow left→right chronologically
+  // All consecutive days (filled + gaps), oldest first — for the timeline
+  const allSlots = buildDayRange(entries);
+  // Last 14 filled entries, oldest first — for trend charts and data table
   const recent = entries.slice(0, 14).reverse();
 
   if (entries.length === 0) {
@@ -517,7 +565,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <BackArrow onPress={onBack} />
         <Text style={styles.title}>Resumo Gráfico</Text>
-        <Text style={styles.subtitle}>Últimas 2 semanas · {recent.length} noite{recent.length !== 1 ? 's' : ''}</Text>
+        <Text style={styles.subtitle}>{entries.length} noite{entries.length !== 1 ? 's' : ''} registrada{entries.length !== 1 ? 's' : ''} · {allSlots.length} dia{allSlots.length !== 1 ? 's' : ''} de acompanhamento</Text>
 
         {/* ── Timeline ─────────────────────────────────── */}
         <GlassCard style={styles.card}>
@@ -534,8 +582,8 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
             <View style={{ width: 34 + 6 }} />
           </View>
           <View style={styles.timelineRows}>
-            {recent.map((entry) => (
-              <SleepBarRow key={entry.id} entry={entry} />
+            {allSlots.map((slot) => (
+              <SleepBarRow key={slot.date} slot={slot} />
             ))}
           </View>
         </GlassCard>

@@ -58,6 +58,24 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
+// ─── day slot (for gap-aware iteration) ──────────────────────────────────────
+
+interface DaySlot { date: string; entry: SleepDiaryEntry | null; }
+
+function buildDaySlots(entries: SleepDiaryEntry[]): DaySlot[] {
+  if (entries.length === 0) return [];
+  const byDate = new Map(entries.map(e => [e.input.entryDate, e]));
+  const dates = [...byDate.keys()].sort();
+  const start = new Date(dates[0] + 'T12:00:00Z');
+  const end   = new Date(dates[dates.length - 1] + 'T12:00:00Z');
+  const slots: DaySlot[] = [];
+  for (const cur = new Date(start); cur <= end; cur.setUTCDate(cur.getUTCDate() + 1)) {
+    const iso = cur.toISOString().slice(0, 10);
+    slots.push({ date: iso, entry: byDate.get(iso) ?? null });
+  }
+  return slots;
+}
+
 function fmtQuality(q: string | undefined | null): string {
   if (q === 'good') return 'Boa';
   if (q === 'regular') return 'Reg.';
@@ -161,6 +179,15 @@ const CSS = `
   .page-break { page-break-after: always; }
   .footer { margin-top: 16px; padding-top: 7px; border-top: 1px solid #ddd;
             text-align: center; font-size: 8px; color: #aaa; }
+
+  /* ── Empty/not-filled slots ── */
+  .act-track-empty { background: #f2f2f6; }
+  .act-not-filled {
+    position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+    font-size: 5.5px; color: #bbb; letter-spacing: 2px; text-transform: uppercase;
+  }
+  .act-stat-empty { color: #ccc; }
+  .bar-empty-label { font-size: 5.5px; color: #bbb; letter-spacing: 1px; }
 
   /* ── Observations ── */
   .obs-section { margin-top: 6px; }
@@ -345,22 +372,31 @@ function actTimelineHtml(entries: SleepDiaryEntry[]): string {
     `<div class="act-stat-col"><div class="act-stat-hdr">${h}</div></div>`,
   ).join('');
 
-  const rows = entries.map((e) => {
-    const segs = buildSegments(e);
+  const emptyStatCols = '<div class="act-stat-col"><div class="act-stat act-stat-empty">—</div></div>'.repeat(4);
+  const rows = buildDaySlots(entries).map(({ date, entry }) => {
+    if (!entry) {
+      return `
+        <div class="act-layout">
+          <div class="act-col-date"><div class="act-date">${dd(date)}</div></div>
+          <div class="act-col-track"><div class="act-track act-track-empty">${gridLines}<span class="act-not-filled">NÃO PREENCHIDO</span></div></div>
+          <div class="act-col-stats">${emptyStatCols}</div>
+        </div>`;
+    }
+    const segs = buildSegments(entry);
     const segHtml = segs.map(s =>
       `<div class="act-seg" style="left:${pct(s.left)};width:${pct(s.width)};background:${s.color}"></div>`,
     ).join('');
-    const eff = e.metrics.sleepEfficiencyPercent;
+    const eff = entry.metrics.sleepEfficiencyPercent;
     const effCls = eff >= 85 ? 'eff-hi' : eff < 75 ? 'eff-lo' : '';
     return `
       <div class="act-layout">
-        <div class="act-col-date"><div class="act-date">${dd(e.input.entryDate)}</div></div>
+        <div class="act-col-date"><div class="act-date">${dd(entry.input.entryDate)}</div></div>
         <div class="act-col-track"><div class="act-track">${gridLines}${segHtml}</div></div>
         <div class="act-col-stats">
           <div class="act-stat-col"><div class="act-stat ${effCls}">${eff}%</div></div>
-          <div class="act-stat-col"><div class="act-stat">${formatDuration(e.metrics.ttsCalculatedMinutes)}</div></div>
-          <div class="act-stat-col"><div class="act-stat">${e.metrics.lisMinutes}'</div></div>
-          <div class="act-stat-col"><div class="act-stat">${e.input.nightAwakeningsCount}</div></div>
+          <div class="act-stat-col"><div class="act-stat">${formatDuration(entry.metrics.ttsCalculatedMinutes)}</div></div>
+          <div class="act-stat-col"><div class="act-stat">${entry.metrics.lisMinutes}'</div></div>
+          <div class="act-stat-col"><div class="act-stat">${entry.input.nightAwakeningsCount}</div></div>
         </div>
       </div>`;
   }).join('');
@@ -399,16 +435,23 @@ const CHART_DEFS: ChartDef[] = [
 ];
 
 function barChartHtml(entries: SleepDiaryEntry[]): string {
-  const last14 = entries.slice(-14);
+  const last14slots = buildDaySlots(entries).slice(-14);
   const charts = CHART_DEFS.map((def) => {
-    const rows = last14.map((e) => {
-      const val  = def.getValue(e);
+    const rows = last14slots.map(({ date, entry }) => {
+      if (!entry) {
+        return `<div class="bar-row">
+          <span class="bar-date">${dd(date)}</span>
+          <div class="bar-track"><span class="bar-empty-label">NÃO PREENCHIDO</span></div>
+          <span class="bar-val" style="color:#ccc">—</span>
+        </div>`;
+      }
+      const val  = def.getValue(entry);
       const fill = Math.min(100, (val / def.maxValue) * 100).toFixed(1);
       const ref  = def.refValue !== null
         ? `<div class="bar-ref" style="left:${Math.min(100, (def.refValue / def.maxValue) * 100).toFixed(1)}%"></div>`
         : '';
       return `<div class="bar-row">
-        <span class="bar-date">${dd(e.input.entryDate)}</span>
+        <span class="bar-date">${dd(entry.input.entryDate)}</span>
         <div class="bar-track"><div class="bar-fill" style="width:${fill}%;background:${def.color}"></div>${ref}</div>
         <span class="bar-val">${def.format(val)}</span>
       </div>`;

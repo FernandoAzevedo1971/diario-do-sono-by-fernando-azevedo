@@ -74,6 +74,24 @@ interface SegmentDef {
   color: [number, number, number] | null;
 }
 
+// ─── day slot (for gap-aware iteration) ──────────────────────────────────────
+
+interface DaySlot { date: string; entry: SleepDiaryEntry | null; }
+
+function buildDaySlots(entries: SleepDiaryEntry[]): DaySlot[] {
+  if (entries.length === 0) return [];
+  const byDate = new Map(entries.map(e => [e.input.entryDate, e]));
+  const dates = [...byDate.keys()].sort();
+  const start = new Date(dates[0] + 'T12:00:00Z');
+  const end   = new Date(dates[dates.length - 1] + 'T12:00:00Z');
+  const slots: DaySlot[] = [];
+  for (const cur = new Date(start); cur <= end; cur.setUTCDate(cur.getUTCDate() + 1)) {
+    const iso = cur.toISOString().slice(0, 10);
+    slots.push({ date: iso, entry: byDate.get(iso) ?? null });
+  }
+  return slots;
+}
+
 // ─── transposed row defs ──────────────────────────────────────────────────────
 
 interface TransRowDef {
@@ -359,7 +377,8 @@ function drawTimelinePage(
 
   let currentPage = pageNum;
 
-  for (const entry of chronological) {
+  const timelineSlots = buildDaySlots(chronological);
+  for (const { date, entry } of timelineSlots) {
     if (y + BAR_H + ROW_GAP > PAGE_H - 30) {
       drawFooter(doc, currentPage);
       doc.addPage();
@@ -371,39 +390,51 @@ function drawTimelinePage(
 
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    setTextColor(doc, C.darkText);
-    doc.text(formatDateDDMM(entry.input.entryDate), MARGIN, y + BAR_H * 0.7);
+    setTextColor(doc, entry ? C.darkText : C.labelGray);
+    doc.text(formatDateDDMM(date), MARGIN, y + BAR_H * 0.7);
 
-    setFill(doc, [230, 230, 240] as [number, number, number]);
-    doc.setLineWidth(0.1);
-    doc.rect(BAR_X, y, BAR_AREA_W, BAR_H, 'F');
+    if (entry === null) {
+      setFill(doc, [242, 242, 246] as [number, number, number]);
+      doc.setLineWidth(0.1);
+      doc.rect(BAR_X, y, BAR_AREA_W, BAR_H, 'F');
+      doc.setFontSize(5.5);
+      setTextColor(doc, [185, 185, 195] as [number, number, number]);
+      doc.text('NÃO PREENCHIDO', BAR_X + 4, y + BAR_H * 0.68);
+      doc.setFontSize(7);
+      setTextColor(doc, C.labelGray);
+      doc.text('—', BAR_X + BAR_AREA_W + 2, y + BAR_H * 0.75);
+    } else {
+      setFill(doc, [230, 230, 240] as [number, number, number]);
+      doc.setLineWidth(0.1);
+      doc.rect(BAR_X, y, BAR_AREA_W, BAR_H, 'F');
 
-    const bedOffset    = clamp(offsetFromRangeStart(entry.input.bedTime), 0, RANGE_TOTAL_MINUTES);
-    const wakeOffset   = clamp(offsetFromRangeStart(entry.input.finalWakeTime), 0, RANGE_TOTAL_MINUTES);
-    const outOfBedOffset = clamp(offsetFromRangeStart(entry.metrics.outOfBedTime), 0, RANGE_TOTAL_MINUTES);
+      const bedOffset    = clamp(offsetFromRangeStart(entry.input.bedTime), 0, RANGE_TOTAL_MINUTES);
+      const wakeOffset   = clamp(offsetFromRangeStart(entry.input.finalWakeTime), 0, RANGE_TOTAL_MINUTES);
+      const outOfBedOffset = clamp(offsetFromRangeStart(entry.metrics.outOfBedTime), 0, RANGE_TOTAL_MINUTES);
 
-    const segments = buildSegments(
-      bedOffset, entry.input.sleepLatencyMinutes, entry.input.nightAwakeningsCount,
-      entry.input.wasoMinutes, wakeOffset, entry.input.outOfBedLatencyMinutes, outOfBedOffset,
-      entry.input.awakeningDetails,
-    );
+      const segments = buildSegments(
+        bedOffset, entry.input.sleepLatencyMinutes, entry.input.nightAwakeningsCount,
+        entry.input.wasoMinutes, wakeOffset, entry.input.outOfBedLatencyMinutes, outOfBedOffset,
+        entry.input.awakeningDetails,
+      );
 
-    let totalFlex = segments.reduce((s, sg) => s + sg.flex, 0);
-    if (totalFlex === 0) totalFlex = 1;
-    let segX = BAR_X;
-    for (const seg of segments) {
-      const segW = (seg.flex / totalFlex) * BAR_AREA_W;
-      if (seg.color !== null) {
-        setFill(doc, seg.color);
-        doc.rect(segX, y, segW, BAR_H, 'F');
+      let totalFlex = segments.reduce((s, sg) => s + sg.flex, 0);
+      if (totalFlex === 0) totalFlex = 1;
+      let segX = BAR_X;
+      for (const seg of segments) {
+        const segW = (seg.flex / totalFlex) * BAR_AREA_W;
+        if (seg.color !== null) {
+          setFill(doc, seg.color);
+          doc.rect(segX, y, segW, BAR_H, 'F');
+        }
+        segX += segW;
       }
-      segX += segW;
-    }
 
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    setTextColor(doc, C.darkText);
-    doc.text(`${Math.round(entry.metrics.sleepEfficiencyPercent)}%`, BAR_X + BAR_AREA_W + 2, y + BAR_H * 0.75);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      setTextColor(doc, C.darkText);
+      doc.text(`${Math.round(entry.metrics.sleepEfficiencyPercent)}%`, BAR_X + BAR_AREA_W + 2, y + BAR_H * 0.75);
+    }
 
     y += BAR_H + ROW_GAP;
   }
@@ -536,7 +567,7 @@ function drawAveragesPage(
 
 interface ChartSpec {
   title: string;
-  values: number[];
+  values: (number | null)[];
   barColor: [number, number, number];
   refValue: number;
   refLabel: string;
@@ -565,7 +596,8 @@ function drawMiniBarChart(
   const plotH = ch - 18;
   const baselineY = plotY + plotH;
 
-  const allValues = [...spec.values, spec.refValue];
+  const numericValues = spec.values.filter(v => v !== null) as number[];
+  const allValues = [...numericValues, spec.refValue];
   const maxVal = Math.max(...allValues) * 1.15 || 1;
 
   const n = spec.values.length;
@@ -587,15 +619,22 @@ function drawMiniBarChart(
 
   for (let i = 0; i < n; i++) {
     const v = spec.values[i];
-    const barH = Math.max((v / maxVal) * plotH, 0.5);
-    const bx   = plotX + i * stepX + (stepX - barW) / 2;
-    const bTop = baselineY - barH;
-    setFill(doc, spec.barColor);
-    doc.rect(bx, bTop, barW, barH, 'F');
-    doc.setFontSize(5.5);
-    doc.setFont('helvetica', 'bold');
-    setTextColor(doc, C.metricText);
-    doc.text(spec.formatValue(v), bx + barW / 2, bTop - 1, { align: 'center' });
+    const bx = plotX + i * stepX + (stepX - barW) / 2;
+    if (v === null) {
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'normal');
+      setTextColor(doc, [185, 185, 195] as [number, number, number]);
+      doc.text('—', bx + barW / 2, plotY + plotH / 2, { align: 'center' });
+    } else {
+      const barH = Math.max((v / maxVal) * plotH, 0.5);
+      const bTop = baselineY - barH;
+      setFill(doc, spec.barColor);
+      doc.rect(bx, bTop, barW, barH, 'F');
+      doc.setFontSize(5.5);
+      doc.setFont('helvetica', 'bold');
+      setTextColor(doc, C.metricText);
+      doc.text(spec.formatValue(v), bx + barW / 2, bTop - 1, { align: 'center' });
+    }
     if (n <= 14) {
       doc.setFontSize(5);
       doc.setFont('helvetica', 'normal');
@@ -618,35 +657,36 @@ function drawChartsPage(
   sectionHeader(doc, 'EVOLUÇÃO DAS MÉTRICAS', MARGIN, y);
   y += 10;
 
-  const dates = chronological.map((e) => formatDateDDMM(e.input.entryDate));
+  const chartSlots = buildDaySlots(chronological).slice(-14);
+  const dates = chartSlots.map(({ date }) => formatDateDDMM(date));
   const CW = (CONTENT_W - 5) / 2;
   const CH = 50;
 
   const charts: ChartSpec[] = [
     {
       title: 'Eficiência do Sono (%)',
-      values: chronological.map((e) => e.metrics.sleepEfficiencyPercent),
+      values: chartSlots.map(({ entry }) => entry ? entry.metrics.sleepEfficiencyPercent : null),
       barColor: [109, 93, 246],
       refValue: 85, refLabel: '85%',
       formatValue: (v) => `${Math.round(v)}%`,
     },
     {
       title: 'TTS Calculado',
-      values: chronological.map((e) => e.metrics.ttsCalculatedMinutes),
+      values: chartSlots.map(({ entry }) => entry ? entry.metrics.ttsCalculatedMinutes : null),
       barColor: SEG_COLOR.sleep,
       refValue: 420, refLabel: '7h',
       formatValue: (v) => formatDuration(Math.round(v)),
     },
     {
       title: 'Latência — LIS (min)',
-      values: chronological.map((e) => e.metrics.lisMinutes),
+      values: chartSlots.map(({ entry }) => entry ? entry.metrics.lisMinutes : null),
       barColor: SEG_COLOR.latency,
       refValue: 30, refLabel: '30 min',
       formatValue: (v) => `${Math.round(v)}'`,
     },
     {
       title: 'WASO (min)',
-      values: chronological.map((e) => e.metrics.wasoMinutes),
+      values: chartSlots.map(({ entry }) => entry ? entry.metrics.wasoMinutes : null),
       barColor: SEG_COLOR.waso,
       refValue: 30, refLabel: '30 min',
       formatValue: (v) => `${Math.round(v)}'`,

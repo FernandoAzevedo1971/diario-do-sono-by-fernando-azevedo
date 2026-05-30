@@ -233,7 +233,7 @@ const barRowStyles = StyleSheet.create({
 // ─── TrendChart ───────────────────────────────────────────────────────────────
 
 interface TrendChartProps {
-  entries: SleepDiaryEntry[];
+  slots: DaySlot[];
   title: string;
   getValue: (e: SleepDiaryEntry) => number;
   formatValue: (v: number) => string;
@@ -242,9 +242,10 @@ interface TrendChartProps {
   referenceLabel?: string;
 }
 
-function TrendChart({ entries, title, getValue, formatValue, barColor, referenceValue, referenceLabel }: TrendChartProps) {
-  const values = entries.map(getValue);
-  const maxVal = Math.max(...values, referenceValue ?? 0, 1);
+function TrendChart({ slots, title, getValue, formatValue, barColor, referenceValue, referenceLabel }: TrendChartProps) {
+  const values = slots.map(s => s.entry ? getValue(s.entry) : null);
+  const numericValues = values.filter(v => v !== null) as number[];
+  const maxVal = Math.max(...numericValues, referenceValue ?? 0, 1);
 
   return (
     <View style={chartStyles.wrapper}>
@@ -260,18 +261,24 @@ function TrendChart({ entries, title, getValue, formatValue, barColor, reference
 
         {/* Bars */}
         <View style={chartStyles.barsRow}>
-          {entries.map((entry, i) => {
-            const v = values[i] ?? 0;
-            const barH = Math.max(2, (v / maxVal) * BAR_H_MAX);
+          {slots.map((slot, i) => {
+            const v = values[i];
+            const barH = v !== null ? Math.max(2, (v / maxVal) * BAR_H_MAX) : 0;
             return (
-              <View key={entry.id} style={chartStyles.barCol}>
+              <View key={slot.date} style={chartStyles.barCol}>
                 {/* Fixed zone at top for value label */}
                 <View style={chartStyles.valZone}>
-                  <Text style={chartStyles.valLabel} numberOfLines={1}>{formatValue(v)}</Text>
+                  {v !== null ? (
+                    <Text style={chartStyles.valLabel} numberOfLines={1}>{formatValue(v)}</Text>
+                  ) : null}
                 </View>
                 {/* Remaining space — bar grows from the bottom */}
                 <View style={chartStyles.barZone}>
-                  <View style={[chartStyles.bar, { height: barH, backgroundColor: barColor }]} />
+                  {v !== null ? (
+                    <View style={[chartStyles.bar, { height: barH, backgroundColor: barColor }]} />
+                  ) : (
+                    <Text style={chartStyles.notFilledLabel}>N/P</Text>
+                  )}
                 </View>
               </View>
             );
@@ -280,9 +287,9 @@ function TrendChart({ entries, title, getValue, formatValue, barColor, reference
 
         {/* Date labels below bars */}
         <View style={chartStyles.dateRow}>
-          {entries.map((entry) => (
-            <View key={entry.id} style={chartStyles.dateLabelCell}>
-              <Text style={chartStyles.dateLabel}>{shortDate(entry.input.entryDate)}</Text>
+          {slots.map((slot) => (
+            <View key={slot.date} style={chartStyles.dateLabelCell}>
+              <Text style={chartStyles.dateLabel}>{shortDate(slot.date)}</Text>
             </View>
           ))}
         </View>
@@ -344,6 +351,13 @@ const chartStyles = StyleSheet.create({
     width: '48%',
     borderRadius: 4,
     minHeight: 2,
+  },
+  notFilledLabel: {
+    color: colors.textMuted,
+    fontSize: 6,
+    opacity: 0.55,
+    letterSpacing: 1,
+    textAlign: 'center',
   },
 
   dateRow: {
@@ -544,7 +558,9 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
 }) {
   // All consecutive days (filled + gaps), oldest first — for the timeline
   const allSlots = buildDayRange(entries);
-  // Last 14 filled entries, oldest first — for trend charts and data table
+  // Last 14 slots (filled + gaps), oldest first — for trend charts
+  const recentSlots = allSlots.slice(-14);
+  // Last 14 filled entries, oldest first — for data table
   const recent = entries.slice(0, 14).reverse();
 
   if (entries.length === 0) {
@@ -591,7 +607,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
         {/* ── Eficiência ───────────────────────────────── */}
         <GlassCard style={styles.card}>
           <TrendChart
-            entries={recent}
+            slots={recentSlots}
             title="Eficiência do sono (%)"
             getValue={(e) => e.metrics.sleepEfficiencyPercent}
             formatValue={(v) => `${v}%`}
@@ -604,7 +620,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
         {/* ── TTS calculado ────────────────────────────── */}
         <GlassCard style={styles.card}>
           <TrendChart
-            entries={recent}
+            slots={recentSlots}
             title="Tempo total de sono — calculado"
             getValue={(e) => e.metrics.ttsCalculatedMinutes}
             formatValue={(v) => formatDuration(v)}
@@ -617,7 +633,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
         {/* ── TTS percebido ────────────────────────────── */}
         <GlassCard style={styles.card}>
           <TrendChart
-            entries={recent}
+            slots={recentSlots}
             title="Tempo total de sono — percebido"
             getValue={(e) => e.metrics.ttsPerceivedMinutes}
             formatValue={(v) => formatDuration(v)}
@@ -628,7 +644,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
         {/* ── TTC ─────────────────────────────────────── */}
         <GlassCard style={styles.card}>
           <TrendChart
-            entries={recent}
+            slots={recentSlots}
             title="Tempo total na cama (TTC)"
             getValue={(e) => e.metrics.ttcMinutes}
             formatValue={(v) => formatDuration(v)}
@@ -639,7 +655,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
         {/* ── LIS ─────────────────────────────────────── */}
         <GlassCard style={styles.card}>
           <TrendChart
-            entries={recent}
+            slots={recentSlots}
             title="Latência de início do sono (LIS)"
             getValue={(e) => e.metrics.lisMinutes}
             formatValue={(v) => `${v}min`}
@@ -652,7 +668,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
         {/* ── WASO ────────────────────────────────────── */}
         <GlassCard style={styles.card}>
           <TrendChart
-            entries={recent}
+            slots={recentSlots}
             title="Tempo acordado durante a noite (WASO)"
             getValue={(e) => e.metrics.wasoMinutes}
             formatValue={(v) => `${v}min`}
@@ -665,7 +681,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
         {/* ── Despertares ──────────────────────────────── */}
         <GlassCard style={styles.card}>
           <TrendChart
-            entries={recent}
+            slots={recentSlots}
             title="Número de despertares"
             getValue={(e) => e.metrics.fragmentationCount}
             formatValue={(v) => `${Math.round(v)}`}
@@ -676,7 +692,7 @@ export function GraphicSummaryScreen({ entries, onBack, onReport }: {
         {/* ── Inércia ──────────────────────────────────── */}
         <GlassCard style={styles.card}>
           <TrendChart
-            entries={recent}
+            slots={recentSlots}
             title="Inércia ao despertar"
             getValue={(e) => e.metrics.wakeInertiaMinutes}
             formatValue={(v) => `${v}min`}

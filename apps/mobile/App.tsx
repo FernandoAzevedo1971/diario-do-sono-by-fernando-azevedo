@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Component, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as Notifications from 'expo-notifications';
 import { loadEntries, loadIsiHistory, loadProfile, saveIsiRecord, saveProfile, upsertEntry } from './src/storage/diaryRepository';
 import { cancelDailyDiaryReminder, scheduleDailyDiaryReminder } from './src/services/notificationService';
 import { getInitialAuthenticatedUser, subscribeToAuthenticatedUser } from './src/services/authService';
@@ -45,6 +46,18 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 export default function App() {
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }, []);
+
   const [route, setRoute] = useState<AppRoute>('loading');
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [profile, setProfile] = useState<PatientProfile | null>(null);

@@ -14,6 +14,14 @@ export async function scheduleDailyDiaryReminder(usualOutOfBedTime: string): Pro
 
   await Notifications.cancelAllScheduledNotificationsAsync();
 
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('diary-reminder', {
+      name: 'Lembrete do Diário',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: null,
+    });
+  }
+
   const [hours, minutes] = usualOutOfBedTime.split(':').map(Number);
   const reminderHour = (hours + 1) % 24;
 
@@ -26,6 +34,7 @@ export async function scheduleDailyDiaryReminder(usualOutOfBedTime: string): Pro
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: reminderHour,
       minute: minutes,
+      channelId: 'diary-reminder',
     },
   });
 }

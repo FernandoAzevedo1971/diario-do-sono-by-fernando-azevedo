@@ -3,24 +3,22 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../theme/tokens';
 
-// ─── Estrelas — posições diferentes da versão anterior ───────────────────────
+// ─── Estrelas fixas com posições pré-definidas ────────────────────────────────
+// Evitam a região central (onde ficam lua + título)
 
 const STARS: Array<{ x: string; y: string; r: number; delay: number; duration: number }> = [
-  { x: '12%', y: '5%',  r: 1.5, delay: 0,    duration: 3200 },
-  { x: '78%', y: '4%',  r: 1.8, delay: 700,  duration: 2800 },
-  { x: '38%', y: '2%',  r: 1,   delay: 300,  duration: 3600 },
-  { x: '88%', y: '14%', r: 2.2, delay: 1100, duration: 2600 },
-  { x: '56%', y: '8%',  r: 1.2, delay: 200,  duration: 3400 },
-  { x: '4%',  y: '26%', r: 1,   delay: 900,  duration: 2900 },
-  { x: '96%', y: '38%', r: 2,   delay: 500,  duration: 3100 },
-  { x: '6%',  y: '65%', r: 1,   delay: 1300, duration: 2700 },
-  { x: '92%', y: '58%', r: 1.5, delay: 400,  duration: 3500 },
-  { x: '3%',  y: '78%', r: 2,   delay: 800,  duration: 2800 },
-  { x: '91%', y: '83%', r: 1,   delay: 100,  duration: 3300 },
-  { x: '17%', y: '88%', r: 1.8, delay: 600,  duration: 3000 },
-  { x: '50%', y: '1%',  r: 1,   delay: 1500, duration: 2800 },
-  { x: '72%', y: '93%', r: 1.5, delay: 250,  duration: 3200 },
-  { x: '29%', y: '95%', r: 1.2, delay: 950,  duration: 2700 },
+  { x: '8%',  y: '7%',  r: 1.5, delay: 0,    duration: 3200 },
+  { x: '83%', y: '5%',  r: 2,   delay: 700,  duration: 2800 },
+  { x: '22%', y: '13%', r: 1,   delay: 300,  duration: 3600 },
+  { x: '65%', y: '10%', r: 2,   delay: 1100, duration: 2600 },
+  { x: '91%', y: '20%', r: 1.5, delay: 200,  duration: 3400 },
+  { x: '5%',  y: '30%', r: 1,   delay: 900,  duration: 2900 },
+  { x: '94%', y: '42%', r: 2,   delay: 500,  duration: 3100 },
+  { x: '10%', y: '55%', r: 1,   delay: 1300, duration: 2700 },
+  { x: '88%', y: '62%', r: 1.5, delay: 400,  duration: 3500 },
+  { x: '4%',  y: '72%', r: 2,   delay: 800,  duration: 2800 },
+  { x: '92%', y: '78%', r: 1,   delay: 100,  duration: 3300 },
+  { x: '18%', y: '84%', r: 1.5, delay: 600,  duration: 3000 },
 ];
 
 function Star({ x, y, r, delay, duration }: typeof STARS[0]) {
@@ -30,8 +28,8 @@ function Star({ x, y, r, delay, duration }: typeof STARS[0]) {
     Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
-        Animated.timing(opacity, { toValue: 1, duration: duration / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.08, duration: duration / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.85, duration: duration / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.15, duration: duration / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     ).start();
   }, []);
@@ -47,21 +45,19 @@ function Star({ x, y, r, delay, duration }: typeof STARS[0]) {
 }
 
 const starStyle = StyleSheet.create({
-  dot: { position: 'absolute', backgroundColor: '#D8EAFF' },
+  dot: { position: 'absolute', backgroundColor: '#fff' },
 });
 
-// ─── Lua prateada com anel de eclipse ─────────────────────────────────────────
+// ─── Lua crescente com halos ──────────────────────────────────────────────────
 
-function Moon({ breatheAnim, glowAnim }: { breatheAnim: Animated.Value; glowAnim: Animated.Value }) {
+function Moon({ scaleAnim, glowAnim }: { scaleAnim: Animated.Value; glowAnim: Animated.Value }) {
   return (
-    <Animated.View style={[moonStyle.wrapper, { transform: [{ scale: breatheAnim }] }]}>
-      {/* Halos em azul frio */}
+    <Animated.View style={[moonStyle.wrapper, { transform: [{ scale: scaleAnim }] }]}>
+      {/* Halos concêntricos que pulsam */}
       <Animated.View style={[moonStyle.halo, moonStyle.halo3, { opacity: glowAnim }]} />
       <Animated.View style={[moonStyle.halo, moonStyle.halo2, { opacity: glowAnim }]} />
       <Animated.View style={[moonStyle.halo, moonStyle.halo1, { opacity: glowAnim }]} />
-      {/* Anel de eclipse */}
-      <View style={moonStyle.eclipseRing} />
-      {/* Lua prateada */}
+      {/* Lua */}
       <Text style={moonStyle.moon}>☾</Text>
     </Animated.View>
   );
@@ -69,84 +65,78 @@ function Moon({ breatheAnim, glowAnim }: { breatheAnim: Animated.Value; glowAnim
 
 const moonStyle = StyleSheet.create({
   wrapper: { alignItems: 'center', justifyContent: 'center' },
-  eclipseRing: {
-    position: 'absolute',
-    width: 152,
-    height: 152,
-    borderRadius: 76,
-    borderWidth: 1,
-    borderColor: 'rgba(150,190,255,0.18)',
-    backgroundColor: 'transparent',
-  },
   halo: { position: 'absolute', borderRadius: 999 },
-  halo1: { width: 190, height: 190, backgroundColor: 'rgba(100,150,255,0.10)' },
-  halo2: { width: 265, height: 265, backgroundColor: 'rgba(80,120,240,0.05)' },
-  halo3: { width: 350, height: 350, backgroundColor: 'rgba(60,100,220,0.025)' },
-  moon: {
-    fontSize: 130,
-    color: '#C8DEFF',
-    textShadowColor: 'rgba(140,180,255,0.85)',
+  halo1: { width: 190, height: 190, backgroundColor: 'rgba(248,200,106,0.14)' },
+  halo2: { width: 260, height: 260, backgroundColor: 'rgba(248,200,106,0.07)' },
+  halo3: { width: 340, height: 340, backgroundColor: 'rgba(248,200,106,0.03)' },
+  moon:  {
+    fontSize: 120,
+    color: '#F8C86A',
+    textShadowColor: 'rgba(248,200,106,0.7)',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 50,
+    textShadowRadius: 40,
   },
 });
 
 // ─── SplashScreen ─────────────────────────────────────────────────────────────
 
 export function SplashScreen() {
-  const screenOpacity     = useRef(new Animated.Value(0)).current;
-  const centerScale       = useRef(new Animated.Value(0.06)).current;  // Zoom progressivo
-  const centerOpacity     = useRef(new Animated.Value(0)).current;
-  const starsOpacity      = useRef(new Animated.Value(0)).current;
-  const watermarkOpacity  = useRef(new Animated.Value(0)).current;
-  const moonBreathe       = useRef(new Animated.Value(1)).current;
-  const glowOpacity       = useRef(new Animated.Value(0.15)).current;
+  // Valores animados
+  const screenOpacity   = useRef(new Animated.Value(0)).current;
+  const moonOpacity     = useRef(new Animated.Value(0)).current;
+  const moonScale       = useRef(new Animated.Value(0.85)).current;
+  const glowOpacity     = useRef(new Animated.Value(0.2)).current;
+  const titleTranslateY = useRef(new Animated.Value(30)).current;
+  const titleOpacity    = useRef(new Animated.Value(0)).current;
+  const markOpacity     = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Fase 1 — zoom progressivo da composição central
+    // Fase 1 — aparecimento inicial
     Animated.parallel([
       Animated.timing(screenOpacity, {
-        toValue: 1, duration: 500, useNativeDriver: true,
+        toValue: 1, duration: 700, useNativeDriver: true,
       }),
       Animated.sequence([
-        Animated.delay(100),
+        Animated.delay(150),
         Animated.parallel([
-          Animated.timing(centerOpacity, {
-            toValue: 1, duration: 550, useNativeDriver: true,
+          Animated.timing(moonOpacity, {
+            toValue: 1, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: true,
           }),
-          Animated.timing(centerScale, {
-            toValue: 1,
-            duration: 1500,
-            easing: Easing.out(Easing.back(1.45)),
-            useNativeDriver: true,
+          Animated.timing(moonScale, {
+            toValue: 1, duration: 900, easing: Easing.out(Easing.back(1.4)), useNativeDriver: true,
           }),
         ]),
       ]),
       Animated.sequence([
-        Animated.delay(850),
-        Animated.timing(starsOpacity, {
-          toValue: 1, duration: 1100, useNativeDriver: true,
-        }),
+        Animated.delay(600),
+        Animated.parallel([
+          Animated.timing(titleOpacity, {
+            toValue: 1, duration: 700, useNativeDriver: true,
+          }),
+          Animated.timing(titleTranslateY, {
+            toValue: 0, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: true,
+          }),
+        ]),
       ]),
       Animated.sequence([
-        Animated.delay(1500),
-        Animated.timing(watermarkOpacity, {
-          toValue: 0.35, duration: 900, useNativeDriver: true,
+        Animated.delay(1100),
+        Animated.timing(markOpacity, {
+          toValue: 0.28, duration: 900, useNativeDriver: true,
         }),
       ]),
     ]).start(() => {
-      // Fase 2 — animações em loop
+      // Fase 2 — loops contínuos
       Animated.loop(
         Animated.sequence([
-          Animated.timing(moonBreathe, { toValue: 1.06, duration: 2900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(moonBreathe, { toValue: 1.00, duration: 2900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(moonScale, { toValue: 1.05, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(moonScale, { toValue: 1.00, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
         ]),
       ).start();
 
       Animated.loop(
         Animated.sequence([
-          Animated.timing(glowOpacity, { toValue: 0.72, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(glowOpacity, { toValue: 0.15, duration: 3200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(glowOpacity, { toValue: 0.65, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(glowOpacity, { toValue: 0.20, duration: 2600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
         ]),
       ).start();
     });
@@ -155,37 +145,34 @@ export function SplashScreen() {
   return (
     <Animated.View style={[styles.root, { opacity: screenOpacity }]}>
       <LinearGradient
-        colors={['#030212', '#07051E', '#0A1132', '#040A1C']}
-        locations={[0, 0.3, 0.68, 1]}
+        colors={['#060919', '#0C1130', '#130C38']}
+        locations={[0, 0.55, 1]}
         style={styles.gradient}
       >
-        {/* ── Estrelas (aparecem após o zoom) ── */}
-        <Animated.View style={[styles.starsLayer, { opacity: starsOpacity }]} pointerEvents="none">
+        {/* ── Estrelas ── */}
+        <View style={styles.starsLayer} pointerEvents="none">
           {STARS.map((s, i) => <Star key={i} {...s} />)}
-        </Animated.View>
+        </View>
 
-        {/* ── Composição central com zoom progressivo ── */}
-        <Animated.View
-          style={[
-            styles.center,
-            { transform: [{ scale: centerScale }], opacity: centerOpacity },
-          ]}
-        >
-          <Moon breatheAnim={moonBreathe} glowAnim={glowOpacity} />
+        {/* ── Conteúdo principal ── */}
+        <View style={styles.center}>
+          {/* Lua */}
+          <Animated.View style={{ opacity: moonOpacity }}>
+            <Moon scaleAnim={moonScale} glowAnim={glowOpacity} />
+          </Animated.View>
 
-          <View style={styles.titleBlock}>
-            <View style={styles.titleRow}>
-              <View style={styles.rule} />
-              <Text style={styles.titleMain}>DIÁRIO DO SONO</Text>
-              <View style={styles.rule} />
-            </View>
+          {/* Título */}
+          <Animated.View style={[styles.titleBlock, { opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>
+            <Text style={styles.titleLine1}>DIÁRIO</Text>
+            <Text style={styles.titleLine2}>DO SONO</Text>
+            <View style={styles.divider} />
             <Text style={styles.subtitle}>Seu registro clínico do sono</Text>
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </View>
 
-        {/* ── Assinatura ── */}
-        <Animated.View style={[styles.watermark, { opacity: watermarkOpacity }]}>
-          <Text style={styles.watermarkLine}>DR. FERNANDO AZEVEDO</Text>
+        {/* ── Marca d'água (estilo da referência) ── */}
+        <Animated.View style={[styles.watermark, { opacity: markOpacity }]}>
+          <Text style={styles.watermarkLine}>BY FERNANDO AZEVEDO</Text>
           <Text style={styles.watermarkLine}>PNEUMOLOGIA  ·  MEDICINA DO SONO</Text>
         </Animated.View>
       </LinearGradient>
@@ -194,38 +181,56 @@ export function SplashScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  gradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  starsLayer: { ...StyleSheet.absoluteFillObject },
-  center: {
+  root: {
+    flex: 1,
+  },
+  gradient: {
+    flex: 1,
     alignItems: 'center',
-    gap: 34,
+    justifyContent: 'center',
+  },
+  starsLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 36,
   },
   titleBlock: {
     alignItems: 'center',
-    gap: 10,
+    gap: 0,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  rule: {
-    width: 26,
-    height: 1,
-    backgroundColor: 'rgba(150,190,255,0.45)',
-  },
-  titleMain: {
-    color: '#E6F0FF',
-    fontSize: 26,
-    fontWeight: '300',
-    letterSpacing: 7,
+  titleLine1: {
+    color: colors.text,
+    fontSize: 48,
+    fontWeight: '900',
+    letterSpacing: 14,
+    lineHeight: 56,
     textAlign: 'center',
   },
+  titleLine2: {
+    color: colors.text,
+    fontSize: 48,
+    fontWeight: '900',
+    letterSpacing: 14,
+    lineHeight: 52,
+    textAlign: 'center',
+  },
+  divider: {
+    width: 48,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#F8C86A',
+    opacity: 0.6,
+    marginTop: 16,
+    marginBottom: 12,
+  },
   subtitle: {
-    color: 'rgba(150,180,230,0.65)',
-    fontSize: 12,
-    letterSpacing: 2.5,
+    color: colors.textMuted,
+    fontSize: 14,
+    letterSpacing: 1.5,
     textAlign: 'center',
     fontWeight: '300',
   },
@@ -238,8 +243,8 @@ const styles = StyleSheet.create({
   watermarkLine: {
     color: '#ffffff',
     fontSize: 10,
-    letterSpacing: 3.5,
-    fontWeight: '300',
+    letterSpacing: 4,
+    fontWeight: '400',
     textAlign: 'center',
   },
 });

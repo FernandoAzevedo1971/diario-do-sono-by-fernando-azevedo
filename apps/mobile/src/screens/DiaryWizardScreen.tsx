@@ -249,7 +249,7 @@ export function DiaryWizardScreen({ editingEntry, previousEntry, initialDate, on
             onChange={(value) => { mark('sleepMedication'); setInput({
               ...input,
               sleepMedication: value === 'yes'
-                ? { used: true, name: input.sleepMedication?.name ?? '', dose: input.sleepMedication?.dose ?? '', time: input.sleepMedication?.time ?? '22:00' }
+                ? { used: true, name: input.sleepMedication?.name ?? '', dose: input.sleepMedication?.dose ?? '', time: input.sleepMedication?.time ?? input.bedTime }
                 : { used: false, name: null, dose: null, time: null },
             }); }}
             options={[['no', 'NÃO'], ['yes', 'SIM']]}
